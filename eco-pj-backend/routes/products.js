@@ -6,7 +6,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // Get all products (public)
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find().populate('categoryId brandId');
+    const products = await Product.find().populate('categoryId');
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 // Get single product (public)
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('categoryId brandId');
+    const product = await Product.findById(req.params.id).populate('categoryId');
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
@@ -28,10 +28,11 @@ router.get('/:id', async (req, res) => {
 
 // Create product (admin only)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
-  const { name, price, stock, categoryId, brandId, description, imageURLs } = req.body;
+  const { name, price, stock, categoryId, description, imageURLs } = req.body;
   try {
-    const product = new Product({ name, price, stock, categoryId, brandId, description, imageURLs });
+    const product = new Product({ name, price, stock, categoryId, description, imageURLs });
     await product.save();
+    await product.populate('categoryId');
     res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -40,16 +41,15 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 
 // Update product (admin only)
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  const { name, price, stock, categoryId, brandId, description, imageURLs } = req.body;
+  const { name, price, stock, categoryId, description, imageURLs } = req.body;
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { name, price, stock, categoryId, brandId, description, imageURLs },
-      { new: true }
-    );
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
+    Object.assign(product, { name, price, stock, categoryId, description, imageURLs });
+    await product.save();
+    await product.populate('categoryId');
     res.json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -1,73 +1,58 @@
-import { createContext, useState, useEffect, useContext } from 'react';
-import { getCart, addToCart, updateCart, removeFromCart, createOrder } from '../lib/api';
-import { AuthContext } from './AuthContext';
-import { toast } from 'react-toastify';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { addToCart, getCart, removeFromCart, updateCart } from '../lib/api';
 
-export const CartContext = createContext();
+const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const { user } = useContext(AuthContext);
-  const [cart, setCart] = useState({ items: [] });
-
-  const fetchCart = async () => {
-    if (!user) return;
-    try {
-      const response = await getCart();
-      setCart(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch cart');
-    }
-  };
+  const [cart, setCart] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
+    const fetchCart = async () => {
+      if (token) {
+        try {
+          const cartData = await getCart(token);
+          setCart(cartData);
+        } catch (error) {
+          console.error('Failed to fetch cart:', error);
+        }
+      }
+    };
     fetchCart();
-  }, [user]);
+  }, [token]);
 
   const addItem = async (productId, quantity) => {
     try {
-      const response = await addToCart({ productId, quantity });
-      setCart(response.data);
-      toast.success('Added to cart');
+      const updatedCart = await addToCart(token, productId, quantity);
+      setCart(updatedCart);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to add to cart');
+      console.error('Failed to add to cart:', error);
     }
   };
 
   const updateItem = async (productId, quantity) => {
     try {
-      const response = await updateCart({ productId, quantity });
-      setCart(response.data);
-      toast.success('Cart updated');
+      const updatedCart = await updateCart(token, productId, quantity);
+      setCart(updatedCart);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update cart');
+      console.error('Failed to update cart:', error);
     }
   };
 
   const removeItem = async (productId) => {
     try {
-      const response = await removeFromCart(productId);
-      setCart(response.data);
-      toast.success('Removed from cart');
+      const updatedCart = await removeFromCart(token, productId);
+      setCart(updatedCart);
     } catch (error) {
-      toast.error('Failed to remove from cart');
-    }
-  };
-
-  const checkout = async (shippingInfo, paymentMethod) => {
-    try {
-      const response = await createOrder({ shippingInfo, paymentMethod });
-      setCart({ items: [] }); // Clear cart
-      toast.success('Order placed successfully');
-      return response.data;
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Checkout failed');
-      throw error;
+      console.error('Failed to remove from cart:', error);
     }
   };
 
   return (
-    <CartContext.Provider value={{ cart, addItem, updateItem, removeItem, checkout }}>
+    <CartContext.Provider value={{ cart, addItem, updateItem, removeItem, setToken }}>
       {children}
     </CartContext.Provider>
   );
 };
+
+export const useCart = () => useContext(CartContext);
