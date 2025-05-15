@@ -6,26 +6,29 @@ export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
 
-  // Fetch cart on mount
+  // Fetch cart on mount or token change
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const token = localStorage.getItem('token');
         if (token) {
           const cartData = await getCart(token);
           setCart(cartData);
+        } else {
+          setCart(null);
         }
       } catch (error) {
         console.error('Failed to fetch cart:', error);
+        setCart(null);
       }
     };
     fetchCart();
-  }, []);
+  }, [token]);
 
   const addItem = async (productId, quantity) => {
     try {
-      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Please log in to add items to cart');
       const updatedCart = await addToCart(token, productId, quantity);
       setCart(updatedCart);
     } catch (error) {
@@ -36,7 +39,7 @@ export const CartProvider = ({ children }) => {
 
   const updateItem = async (productId, quantity) => {
     try {
-      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Please log in to update cart');
       const updatedCart = await updateCart(token, productId, quantity);
       setCart(updatedCart);
     } catch (error) {
@@ -47,7 +50,7 @@ export const CartProvider = ({ children }) => {
 
   const removeItem = async (productId) => {
     try {
-      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Please log in to remove items from cart');
       const updatedCart = await removeFromCart(token, productId);
       setCart(updatedCart);
     } catch (error) {
@@ -57,7 +60,7 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, setCart, addItem, updateItem, removeItem }}>
+    <CartContext.Provider value={{ cart, setCart, token, setToken, addItem, updateItem, removeItem }}>
       {children}
     </CartContext.Provider>
   );

@@ -1,28 +1,41 @@
 const API_URL = 'http://localhost:5000/api';
 
 const handleResponse = async (response) => {
-  const data = await response.json();
+  console.log(`Response status for ${response.url}: ${response.status}`);
+  const contentType = response.headers.get('content-type');
+  console.log(`Content-Type: ${contentType}`);
+
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
+    const text = await response.text();
+    console.log(`Raw response: ${text.slice(0, 100)}...`);
+    throw new Error(`HTTP error: ${response.status}, Response: ${text.slice(0, 100)}...`);
   }
-  return data;
+
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(`Expected JSON, got ${contentType}: ${text.slice(0, 100)}...`);
+  }
+
+  return response.json();
 };
 
 // Auth
-export const register = async (userData) => {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(userData),
-  });
-  return handleResponse(response);
-};
-
 export const login = async (credentials) => {
+  console.log('Logging in to:', `${API_URL}/auth/login`);
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(credentials),
+  });
+  return handleResponse(response);
+};
+
+export const register = async (userData) => {
+  console.log('Registering to:', `${API_URL}/auth/register`);
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
   });
   return handleResponse(response);
 };
@@ -34,12 +47,33 @@ export const getProducts = async () => {
 };
 
 export const getProduct = async (id) => {
+  console.log('Fetching product from:', `${API_URL}/products/${id}`);
   const response = await fetch(`${API_URL}/products/${id}`);
+  return handleResponse(response);
+};
+
+// Reviews
+export const getReviews = async (productId) => {
+  console.log('Fetching reviews from:', `${API_URL}/reviews/${productId}`);
+  const response = await fetch(`${API_URL}/reviews/${productId}`);
+  return handleResponse(response);
+};
+
+export const createReview = async (token, reviewData) => {
+  const response = await fetch(`${API_URL}/reviews`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(reviewData),
+  });
   return handleResponse(response);
 };
 
 // Cart
 export const getCart = async (token) => {
+  console.log('Fetching cart from:', `${API_URL}/cart`);
   const response = await fetch(`${API_URL}/cart`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -47,6 +81,7 @@ export const getCart = async (token) => {
 };
 
 export const addToCart = async (token, productId, quantity) => {
+  console.log('Adding to cart:', { productId, quantity });
   const response = await fetch(`${API_URL}/cart`, {
     method: 'POST',
     headers: {
@@ -59,6 +94,7 @@ export const addToCart = async (token, productId, quantity) => {
 };
 
 export const updateCart = async (token, productId, quantity) => {
+  console.log('Updating cart:', { productId, quantity });
   const response = await fetch(`${API_URL}/cart`, {
     method: 'PUT',
     headers: {
@@ -71,6 +107,7 @@ export const updateCart = async (token, productId, quantity) => {
 };
 
 export const removeFromCart = async (token, productId) => {
+  console.log('Removing from cart:', { productId });
   const response = await fetch(`${API_URL}/cart/${productId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
@@ -122,24 +159,6 @@ export const createOrder = async (token, orderData) => {
 export const getOrders = async (token) => {
   const response = await fetch(`${API_URL}/orders`, {
     headers: { Authorization: `Bearer ${token}` },
-  });
-  return handleResponse(response);
-};
-
-// Reviews
-export const getReviews = async (productId) => {
-  const response = await fetch(`${API_URL}/reviews/${productId}`);
-  return handleResponse(response);
-};
-
-export const createReview = async (token, reviewData) => {
-  const response = await fetch(`${API_URL}/reviews`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(reviewData),
   });
   return handleResponse(response);
 };
