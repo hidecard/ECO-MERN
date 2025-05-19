@@ -163,30 +163,141 @@ export const getOrders = async (token) => {
   return handleResponse(response);
 };
 
-// Admin
+// Admin - Products
 export const getAdminProducts = async (token) => {
+  console.log('Fetching admin products from:', `${API_URL}/admin/products`);
   const response = await fetch(`${API_URL}/admin/products`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse(response);
 };
 
+export const createAdminProduct = async (token, productData) => {
+  console.log('Creating product:', productData);
+  const response = await fetch(`${API_URL}/admin/products`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(productData),
+  });
+  return handleResponse(response);
+};
+
+export const updateAdminProduct = async (token, id, productData) => {
+  console.log('Updating product:', id, productData);
+  const response = await fetch(`${API_URL}/admin/products/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(productData),
+  });
+  return handleResponse(response);
+};
+
+export const deleteAdminProduct = async (token, id) => {
+  console.log('Deleting product:', id);
+  const response = await fetch(`${API_URL}/admin/products/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+// Admin - Orders
 export const getAdminOrders = async (token) => {
+  console.log('Fetching admin orders from:', `${API_URL}/admin/orders`);
   const response = await fetch(`${API_URL}/admin/orders`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse(response);
 };
 
+export const updateAdminOrder = async (token, id, orderData) => {
+  console.log('Updating order:', id, orderData);
+  const response = await fetch(`${API_URL}/admin/orders/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(orderData),
+  });
+  return handleResponse(response);
+};
+
+// Admin - Users
 export const getAdminUsers = async (token) => {
+  console.log('Fetching admin users from:', `${API_URL}/admin/users`);
   const response = await fetch(`${API_URL}/admin/users`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse(response);
 };
 
-export const deleteAdminUser = async (token, userId) => {
-  const response = await fetch(`${API_URL}/admin/users/${userId}`, {
+export const updateAdminUser = async (token, id, userData) => {
+  console.log('Updating user:', id, userData);
+  const response = await fetch(`${API_URL}/admin/users/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  return handleResponse(response);
+};
+
+export const deleteAdminUser = async (token, id) => {
+  console.log('Deleting user:', id);
+  const response = await fetch(`${API_URL}/admin/users/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+// Admin - Categories
+export const getAdminCategories = async (token) => {
+  console.log('Fetching admin categories from:', `${API_URL}/admin/categories`);
+  const response = await fetch(`${API_URL}/admin/categories`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const createAdminCategory = async (token, categoryData) => {
+  console.log('Creating category:', categoryData);
+  const response = await fetch(`${API_URL}/admin/categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(categoryData),
+  });
+  return handleResponse(response);
+};
+
+export const updateAdminCategory = async (token, id, categoryData) => {
+  console.log('Updating category:', id, categoryData);
+  const response = await fetch(`${API_URL}/admin/categories/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(categoryData),
+  });
+  return handleResponse(response);
+};
+
+export const deleteAdminCategory = async (token, id) => {
+  console.log('Deleting category:', id);
+  const response = await fetch(`${API_URL}/admin/categories/${id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
