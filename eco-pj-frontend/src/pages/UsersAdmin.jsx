@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { getAdminUsers, updateAdminUser, deleteAdminUser } from '../lib/api';
+import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from '../lib/api';
 
 function UsersAdmin() {
   const { token } = useCart();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ name: '', email: '', role: 'user' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user' });
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,11 +37,23 @@ function UsersAdmin() {
     e.preventDefault();
     try {
       if (editingId) {
-        const updatedUser = await updateAdminUser(token, editingId, form);
+        // Update user (exclude password if not changed)
+        const updateData = { name: form.name, email: form.email, role: form.role };
+        if (form.password) updateData.password = form.password;
+        const updatedUser = await updateAdminUser(token, editingId, updateData);
         setUsers(users.map(u => (u._id === editingId ? updatedUser : u)));
         alert('User updated');
+      } else {
+        // Create user
+        if (!form.password) {
+          alert('Password is required for new users');
+          return;
+        }
+        const newUser = await createAdminUser(token, form);
+        setUsers([...users, newUser]);
+        alert('User created');
       }
-      setForm({ name: '', email: '', role: 'user' });
+      setForm({ name: '', email: '', password: '', role: 'user' });
       setEditingId(null);
     } catch (error) {
       alert(error.message || 'Failed to save user');
@@ -52,6 +64,7 @@ function UsersAdmin() {
     setForm({
       name: user.name,
       email: user.email,
+      password: '', // Clear password for edit
       role: user.role,
     });
     setEditingId(user._id);
@@ -110,7 +123,9 @@ function UsersAdmin() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-2xl font-semibold text-orange-600 mb-4">{editingId ? 'Edit User' : 'Update User'}</h2>
+        <h2 className="text-2xl font-semibold text-orange-600 mb-4">
+          {editingId ? 'Edit User' : 'Create User'}
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700">Name</label>
@@ -133,6 +148,18 @@ function UsersAdmin() {
             />
           </div>
           <div>
+            <label className="block text-gray-700">
+              {editingId ? 'New Password (optional)' : 'Password'}
+            </label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="border rounded-lg p-2 w-full"
+              placeholder={editingId ? 'Leave blank to keep unchanged' : ''}
+            />
+          </div>
+          <div>
             <label className="block text-gray-700">Role</label>
             <select
               value={form.role}
@@ -148,13 +175,13 @@ function UsersAdmin() {
           type="submit"
           className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
         >
-          Update User
+          {editingId ? 'Update User' : 'Create User'}
         </button>
         {editingId && (
           <button
             type="button"
             onClick={() => {
-              setForm({ name: '', email: '', role: 'user' });
+              setForm({ name: '', email: '', password: '', role: 'user' });
               setEditingId(null);
             }}
             className="mt-4 ml-4 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"

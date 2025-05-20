@@ -238,6 +238,19 @@ export const getAdminUsers = async (token) => {
   return handleResponse(response);
 };
 
+export const createAdminUser = async (token, userData) => {
+  console.log('Creating user:', userData);
+  const response = await fetch(`${API_URL}/admin/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  return handleResponse(response);
+};
+
 export const updateAdminUser = async (token, id, userData) => {
   console.log('Updating user:', id, userData);
   const response = await fetch(`${API_URL}/admin/users/${id}`, {

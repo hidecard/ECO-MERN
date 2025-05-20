@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
-const { authMiddleware } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
-router.post('/', authMiddleware, async (req, res) => {
-  const { shippingInfo, paymentMethod } = req.body;
+router.post('/', auth, async (req, res) => {
   try {
-    const cart = await Cart.findOne({ userId: req.user.userId }).populate('items.productId');
+    const { shippingInfo, paymentMethod = 'cod' } = req.body; // Default to 'cod'
+    const cart = await Cart.findOne({ userId: req.user.id }).populate('items.productId');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: 'Cart is empty' });
     }
@@ -18,37 +17,36 @@ router.post('/', authMiddleware, async (req, res) => {
       0
     );
 
-    // Create Stripe Payment Intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(total * 100), // Convert to cents
-      currency: 'usd',
-      payment_method_types: ['card'],
-    });
-
     const order = new Order({
-      userId: req.user.userId,
-      items: cart.items,
-      shippingInfo,
-      paymentMethod,
+      userId: req.user.id,
+      items: cart.items.map(item => ({
+        productId: item.productId._id,
+        quantity: item.quantity,
+        price: item.productId.price,
+      })),
       total,
+      shippingInfo,
       status: 'pending',
+      paymentMethod,
     });
+
     await order.save();
+    cart.items = []; // Clear cart
+    await cart.save();
 
-    // Clear cart
-    await Cart.findOneAndUpdate({ userId: req.user.userId }, { items: [] });
-
-    res.json({ clientSecret: paymentIntent.client_secret });
+    res.json({ message: 'Order created successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Create order error:', error);
+    res.status(400).json({ message: error.message });
   }
 });
 
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user.userId }).populate('items.productId');
+    const orders = await Order.find({ userId: req.user.id }).populate('items.productId');
     res.json(orders);
   } catch (error) {
+    console.error('Get orders error:', error);
     res.status(500).json({ message: error.message });
   }
 });

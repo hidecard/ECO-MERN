@@ -2,11 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { createOrder } from '../lib/api';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-
-// Initialize Stripe with your publishable key
-const stripePromise = loadStripe('pk_test_your_stripe_publishable_key'); // Replace with your Stripe publishable key
 
 function CheckoutForm() {
   const { cart, setCart } = useCart();
@@ -18,8 +13,6 @@ function CheckoutForm() {
   });
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
-  const stripe = useStripe();
-  const elements = useElements();
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -29,31 +22,21 @@ function CheckoutForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
-
     setProcessing(true);
     try {
       const token = localStorage.getItem('token');
-      const { clientSecret } = await createOrder(token, {
-        shippingInfo,
-        paymentMethod: 'card',
-      });
-
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-        },
-      });
-
-      if (result.error) {
-        setError(result.error.message);
-      } else if (result.paymentIntent.status === 'succeeded') {
-        // Clear cart
-        setCart({ items: [] });
-        navigate('/orders');
+      if (!token) {
+        setError('Please log in to checkout');
+        navigate('/login');
+        return;
       }
+      await createOrder(token, { shippingInfo });
+      setCart({ items: [] }); // Clear cart
+      navigate('/orders');
+      alert('Order placed successfully!');
     } catch (error) {
-      setError(error.message);
+      console.error('Checkout error:', error);
+      setError(error.message || 'Failed to place order');
     } finally {
       setProcessing(false);
     }
@@ -126,27 +109,13 @@ function CheckoutForm() {
                 required
               />
             </label>
-            <h3 className="text-lg font-semibold text-orange-600 mb-2">Payment Details</h3>
-            <CardElement
-              className="border rounded-lg p-2 mb-4"
-              options={{
-                style: {
-                  base: {
-                    fontSize: '16px',
-                    color: '#424770',
-                    '::placeholder': { color: '#aab7c4' },
-                  },
-                  invalid: { color: '#9e2146' },
-                },
-              }}
-            />
             {error && <p className="text-red-500 mb-4">{error}</p>}
             <button
               type="submit"
-              disabled={!stripe || processing}
+              disabled={processing}
               className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 w-full disabled:bg-orange-300"
             >
-              {processing ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+              {processing ? 'Processing...' : `Place Order ($${total.toFixed(2)})`}
             </button>
           </form>
         </div>
@@ -156,11 +125,7 @@ function CheckoutForm() {
 }
 
 function Checkout() {
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm />
-    </Elements>
-  );
+  return <CheckoutForm />;
 }
 
 export default Checkout;

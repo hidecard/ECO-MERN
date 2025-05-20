@@ -1,29 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const Review = require('../models/Review');
-const { authMiddleware } = require('../middleware/auth');
+const Product = require('../models/Product');
+const auth = require('../middleware/auth');
 
+// Get reviews for a product
 router.get('/:productId', async (req, res) => {
   try {
     const reviews = await Review.find({ productId: req.params.productId }).populate('userId', 'name');
-    res.json(reviews); // Returns [] if no reviews, which is valid
+    res.json(reviews);
   } catch (error) {
+    console.error('Get reviews error:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
-  const { productId, rating, comment } = req.body;
+// Create a review
+router.post('/', auth, async (req, res) => {
   try {
-    const review = new Review({
-      productId,
-      userId: req.user.userId,
-      rating,
-      comment,
-    });
+    const { productId, userId, rating, comment } = req.body;
+    if (!productId || !userId || !rating || !comment) {
+      return res.status(400).json({ message: 'Product ID, user ID, rating, and comment are required' });
+    }
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    const review = new Review({ productId, userId, rating, comment });
     await review.save();
     res.status(201).json(review);
   } catch (error) {
+    console.error('Create review error:', error);
     res.status(400).json({ message: error.message });
   }
 });

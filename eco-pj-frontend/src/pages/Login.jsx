@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../lib/api';
 import { useCart } from '../context/CartContext';
-import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -11,12 +11,16 @@ function Login() {
   const { setToken } = useCart();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log('Login component mounted');
+    return () => console.log('Login component unmounted');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Basic input validation
     if (!email.includes('@') || !email.includes('.')) {
       setError('Please enter a valid email address');
       setLoading(false);
@@ -29,11 +33,16 @@ function Login() {
     }
 
     try {
-      console.log('Logging in with:', { email }); // Debug
-      const { token } = await login({ email, password });
-      console.log('Login token:', token); // Debug
+      console.log('Logging in with:', { email });
+      const response = await login({ email, password });
+      console.log('Login response:', response);
+      if (!response.token) {
+        throw new Error('No token received from server');
+      }
+      const { token } = response;
       localStorage.setItem('token', token);
       setToken(token);
+      console.log('Stored token:', token.slice(0, 10) + '...');
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
@@ -111,9 +120,9 @@ function Login() {
       </form>
       <p className="mt-4 text-center text-gray-600">
         Don't have an account?{' '}
-        <a href="/register" className="text-orange-500 hover:text-orange-600">
+        <Link to="/register" className="text-orange-500 hover:text-orange-600">
           Register
-        </a>
+        </Link>
       </p>
     </div>
   );
