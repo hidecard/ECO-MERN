@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getProducts } from '../lib/api';
 
@@ -10,7 +10,6 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { addItem, token } = useCart();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -41,11 +40,12 @@ function Home() {
   const handleAddToCart = async (productId) => {
     if (!token) {
       alert('Please log in to add to cart');
-      navigate('/login');
       return;
     }
     try {
       await addItem(productId, 1);
+      // Assuming toast notification is used
+      // toast.success('Added to cart!');
       alert('Added to cart!');
     } catch (error) {
       console.error('Failed to add to cart:', error);

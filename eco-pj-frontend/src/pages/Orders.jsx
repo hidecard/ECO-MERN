@@ -17,6 +17,7 @@ function Orders() {
           return;
         }
         const data = await getOrders(token);
+        console.log('Orders data:', data);
         setOrders(data);
         setLoading(false);
       } catch (error) {
@@ -33,7 +34,7 @@ function Orders() {
       <div className="flex justify-center items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-500"></div>
       </div>
-      <p className="mt-4 text-lg text-gray-600">Loading orders...</p>
+      <p className="mt-4 text-xl text-gray-600">Loading orders...</p>
     </div>
   );
 
@@ -60,7 +61,7 @@ function Orders() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {orders.map(order => (
             <div key={order._id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
               <h3 className="text-xl font-bold text-gray-800">Order ID: {order._id}</h3>

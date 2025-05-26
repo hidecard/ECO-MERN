@@ -50,25 +50,28 @@ function Cart() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {cart.items.map(item => {
             if (!item.productId) {
               console.warn('Invalid cart item:', item);
               return null;
             }
             return (
-              <div key={item.productId._id} className="flex items-center bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+              <div
+                key={item.productId._id}
+                className="flex flex-col sm:flex-row items-center bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 p-8 hover:shadow-xl transition-all duration-300"
+              >
                 <img
                   src={item.productId.imageURLs?.[0] || 'https://via.placeholder.com/100'}
                   alt={item.productId.name || 'Unknown Product'}
-                  className="w-28 h-28 object-cover rounded-lg"
+                  className="w-32 h-32 object-cover rounded-lg mb-4 sm:mb-0 sm:mr-6"
                   loading="lazy"
                   onError={(e) => (e.target.src = 'https://via.placeholder.com/100')}
                 />
-                <div className="ml-6 flex-1">
+                <div className="flex-1 text-center sm:text-left">
                   <h3 className="text-xl font-bold text-gray-800 truncate">{item.productId.name || 'Unknown Product'}</h3>
                   <p className="text-lg font-extrabold text-orange-600">${item.productId.price?.toFixed(2) || '0.00'}</p>
-                  <div className="flex items-center mt-4 space-x-4">
+                  <div className="flex items-center justify-center sm:justify-start mt-4 space-x-4">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleQuantityChange(item.productId._id, -1)}

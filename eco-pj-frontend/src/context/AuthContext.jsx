@@ -1,6 +1,7 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import { login, register } from '../lib/api';
 import { toast } from 'react-toastify';
+import jwtDecode from 'jwt-decode';
 
 export const AuthContext = createContext();
 
@@ -9,49 +10,78 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Decode token to get user data (simplified, use jwt-decode in production)
-      setUser({ token });
-    }
-    setLoading(false);
+    console.log('AuthContext useEffect running');
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          console.log('Fetching user from /api/auth/me with token:', token);
+          const response = await fetch('http://localhost:5000/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) throw new Error('Invalid token');
+          const userData = await response.json();
+          const decoded = jwtDecode(token);
+          setUser({ ...userData, token, isAdmin: decoded.isAdmin || userData.isAdmin });
+          console.log('User set:', userData);
+        } catch (error) {
+          console.error('Failed to fetch user:', error);
+          localStorage.removeItem('token');
+          setUser(null);
+          toast.error('Session expired, please log in again');
+        }
+      }
+      setLoading(false);
+    };
+    initializeAuth();
   }, []);
 
-  const signIn = async (email, password) => {
+  const login = async (email, password) => {
     try {
+      console.log('Logging in:', { email });
       const response = await login({ email, password });
-      localStorage.setItem('token', response.data.token);
-      setUser({ token: response.data.token });
+      const { token, user: userData } = response;
+      localStorage.setItem('token', token);
+      const decoded = jwtDecode(token);
+      setUser({ ...userData, token, isAdmin: decoded.isAdmin || userData.isAdmin });
       toast.success('Logged in successfully');
       return true;
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      console.error('Login failed:', error);
+      toast.error(error.message || 'Login failed');
       return false;
     }
   };
 
-  const signUp = async (name, email, password) => {
+  const register = async (name, email, password) => {
     try {
+      console.log('Registering:', { name, email });
       const response = await register({ name, email, password });
-      localStorage.setItem('token', response.data.token);
-      setUser({ token: response.data.token });
+      const { token, user: userData } = response;
+      localStorage.setItem('token', token);
+      const decoded = jwtDecode(token);
+      setUser({ ...userData, token, isAdmin: decoded.isAdmin || userData.isAdmin });
       toast.success('Registered successfully');
       return true;
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed');
+      console.error('Registration failed:', error);
+      toast.error(error.message || 'Registration failed');
       return false;
     }
   };
 
-  const signOut = () => {
+  const logout = () => {
+    console.log('Logging out');
     localStorage.removeItem('token');
     setUser(null);
     toast.info('Logged out');
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);
