@@ -4,12 +4,29 @@ import { useCart } from '../context/CartContext';
 function Cart() {
   const { cart, updateItem, removeItem } = useCart();
 
-  // Handle null or undefined cart
+  const handleQuantityChange = (productId, delta) => {
+    const item = cart?.items?.find(item => item.productId._id === productId);
+    if (item) {
+      const newQuantity = item.quantity + delta;
+      if (newQuantity >= 1) {
+        updateItem(productId, newQuantity);
+      }
+    }
+  };
+
   if (!cart || !cart.items) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold text-orange-600 mb-6">Your Cart</h1>
-        <p className="text-gray-600">Your cart is empty.</p>
+      <div className="container mx-auto p-8">
+        <h1 className="text-5xl font-extrabold text-orange-600 mb-10">Your Cart</h1>
+        <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100">
+          <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18M3 3l2 18h14l2-18H3zm5 7h8" />
+          </svg>
+          <p className="mt-4 text-xl text-gray-600">Your cart is empty.</p>
+          <Link to="/products" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
+            Shop Now
+          </Link>
+        </div>
       </div>
     );
   }
@@ -20,41 +37,58 @@ function Cart() {
   );
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-orange-600 mb-6">Your Cart</h1>
+    <div className="container mx-auto p-8">
+      <h1 className="text-5xl font-extrabold text-orange-600 mb-10">Your Cart</h1>
       {cart.items.length === 0 ? (
-        <p className="text-gray-600">Your cart is empty.</p>
+        <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100">
+          <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18M3 3l2 18h14l2-18H3zm5 7h8" />
+          </svg>
+          <p className="mt-4 text-xl text-gray-600">Your cart is empty.</p>
+          <Link to="/products" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
+            Shop Now
+          </Link>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-8">
           {cart.items.map(item => {
-            // Skip items with invalid productId
             if (!item.productId) {
               console.warn('Invalid cart item:', item);
               return null;
             }
             return (
-              <div key={item.productId._id} className="flex items-center border rounded-lg p-4 bg-white">
+              <div key={item.productId._id} className="flex items-center bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
                 <img
                   src={item.productId.imageURLs?.[0] || 'https://via.placeholder.com/100'}
                   alt={item.productId.name || 'Unknown Product'}
-                  className="w-24 h-24 object-cover rounded"
+                  className="w-28 h-28 object-cover rounded-lg"
+                  loading="lazy"
                   onError={(e) => (e.target.src = 'https://via.placeholder.com/100')}
                 />
-                <div className="ml-4 flex-1">
-                  <h3 className="text-xl font-semibold text-gray-800">{item.productId.name || 'Unknown Product'}</h3>
-                  <p className="text-gray-600">${item.productId.price?.toFixed(2) || '0.00'}</p>
-                  <div className="flex items-center mt-2">
-                    <label className="mr-2">Qty:</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(item.productId._id, Number(e.target.value))}
-                      className="border rounded w-16 p-1"
-                    />
+                <div className="ml-6 flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 truncate">{item.productId.name || 'Unknown Product'}</h3>
+                  <p className="text-lg font-extrabold text-orange-600">${item.productId.price?.toFixed(2) || '0.00'}</p>
+                  <div className="flex items-center mt-4 space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleQuantityChange(item.productId._id, -1)}
+                        className="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg hover:bg-gray-300 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                        aria-label="Decrease quantity"
+                      >
+                        -
+                      </button>
+                      <span className="text-gray-800 font-semibold">{item.quantity}</span>
+                      <button
+                        onClick={() => handleQuantityChange(item.productId._id, 1)}
+                        className="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg hover:bg-gray-300 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
                     <button
                       onClick={() => removeItem(item.productId._id)}
-                      className="ml-4 text-orange-500 hover:text-orange-600"
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     >
                       Remove
                     </button>
@@ -63,11 +97,11 @@ function Cart() {
               </div>
             );
           })}
-          <div className="text-right">
-            <h2 className="text-2xl font-bold text-gray-800">Total: ${total.toFixed(2)}</h2>
+          <div className="text-right mt-10">
+            <h2 className="text-2xl font-extrabold text-gray-800">Total: ${total.toFixed(2)}</h2>
             <Link
               to="/checkout"
-              className="inline-block mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
+              className="inline-block mt-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
             >
               Proceed to Checkout
             </Link>

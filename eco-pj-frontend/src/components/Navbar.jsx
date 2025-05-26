@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 function Navbar() {
-  const { token } = useCart();
+  const { token, cart, setToken } = useCart();
   const [isAdmin, setIsAdmin] = useState(false);
+  const cartItemCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -25,36 +26,52 @@ function Navbar() {
   }, [token]);
 
   return (
-    <nav className="bg-orange-500 p-4">
+    <nav className="sticky top-0 bg-white/80 backdrop-blur-sm shadow-md p-4 z-50">
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-white text-2xl font-bold">YHA Shop</Link>
-        <div className="space-x-4">
-          <Link to="/" className="text-white hover:text-orange-200">Home</Link>
-          <Link to="/cart" className="text-white hover:text-orange-200">Cart</Link>
+        <Link to="/" className="text-orange-600 text-3xl font-extrabold tracking-tight">YHA Shop</Link>
+        <div className="flex space-x-6 items-center">
+          <Link to="/" className="text-gray-800 hover:text-orange-600 transition duration-300">Home</Link>
+          <Link to="/wishlist" className="relative text-gray-800 hover:text-orange-600 transition duration-300">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 0 4.5 4.5 0 010 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+            </svg>
+          </Link>
+          <Link to="/cart" className="relative text-gray-800 hover:text-orange-600 transition duration-300">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18M3 3l2 18h14l2-18H3zm5 7h8" />
+            </svg>
+            {cartItemCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </Link>
           {token ? (
             <>
               {isAdmin && (
                 <>
-                  <Link to="/admin/products" className="text-white hover:text-orange-200">Products</Link>
-                  <Link to="/admin/orders" className="text-white hover:text-orange-200">Orders</Link>
-                  <Link to="/admin/users" className="text-white hover:text-orange-200">Users</Link>
-                  <Link to="/admin/categories" className="text-white hover:text-orange-200">Categories</Link>
+                  <Link to="/admin" className="text-gray-800 hover:text-orange-600 transition duration-300">Dashboard</Link>
+                  <Link to="/admin/products" className="text-gray-800 hover:text-orange-600 transition duration-300">Products</Link>
+                  <Link to="/admin/orders" className="text-gray-800 hover:text-orange-600 transition duration-300">Orders</Link>
+                  <Link to="/admin/users" className="text-gray-800 hover:text-orange-600 transition duration-300">Users</Link>
+                  <Link to="/admin/categories" className="text-gray-800 hover:text-orange-600 transition duration-300">Categories</Link>
                 </>
               )}
               <button
                 onClick={() => {
                   localStorage.removeItem('token');
+                  setToken(null);
                   window.location.reload();
                 }}
-                className="text-white hover:text-orange-200"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-white hover:text-orange-200">Login</Link>
-              <Link to="/register" className="text-white hover:text-orange-200">Register</Link>
+              <Link to="/login" className="text-gray-800 hover:text-orange-600 transition duration-300">Login</Link>
+              <Link to="/register" className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300">Register</Link>
             </>
           )}
         </div>

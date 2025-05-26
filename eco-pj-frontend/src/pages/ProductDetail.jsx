@@ -1,8 +1,35 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getProduct, getReviews, createReview } from '../lib/api';
 import jwt_decode from 'jwt-decode';
+
+function StarRating({ rating, setRating, readOnly = false }) {
+  const handleClick = (value) => {
+    if (!readOnly && setRating) {
+      setRating(value);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`w-6 h-6 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} ${
+            !readOnly ? 'cursor-pointer hover:text-yellow-500 transition-colors duration-200' : ''
+          }`}
+          fill="currentColor"
+          viewBox="0 0 24 24"
+          onClick={() => handleClick(star)}
+          aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+        >
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
 
 function ProductDetail() {
   const { id } = useParams();
@@ -79,21 +106,20 @@ function ProductDetail() {
   };
 
   if (loading) return (
-    <div className="container mx-auto p-4 text-center">
-      <svg className="animate-spin h-8 w-8 text-orange-600 mx-auto" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
-      </svg>
-      <p className="mt-2 text-gray-600">Loading...</p>
+    <div className="container mx-auto p-8 text-center">
+      <div className="flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-500"></div>
+      </div>
+      <p className="mt-4 text-lg text-gray-600">Loading...</p>
     </div>
   );
 
   if (error) return (
-    <div className="container mx-auto p-4 text-center text-red-500">
-      {error}
+    <div className="container mx-auto p-8 text-center">
+      <p className="text-lg text-red-500">{error}</p>
       <button
         onClick={() => window.location.reload()}
-        className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+        className="mt-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
       >
         Try Again
       </button>
@@ -101,80 +127,95 @@ function ProductDetail() {
   );
 
   if (!product) return (
-    <div className="container mx-auto p-4 text-center text-red-500">
-      Product not found
+    <div className="container mx-auto p-8 text-center">
+      <p className="text-lg text-red-500">Product not found</p>
+      <Link to="/products" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
+        Back to Products
+      </Link>
     </div>
   );
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-orange-600 mb-6">{product.name}</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="container mx-auto p-8">
+      <h1 className="text-5xl font-extrabold text-orange-600 mb-10">{product.name}</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div>
           <img
             src={product.imageURLs?.[0] || '/placeholder.jpg'}
             alt={product.name}
-            className="w-full rounded-lg"
+            className="w-full h-[32rem] object-cover rounded-xl"
+            loading="lazy"
             onError={(e) => (e.target.src = '/placeholder.jpg')}
           />
         </div>
-        <div>
-          <p className="text-gray-600">Price: ${product.price?.toFixed(2)}</p>
-          <p className="text-gray-600">Stock: {product.stock}</p>
-          <p className="text-gray-600">Category: {product.categoryId?.name || 'Uncategorized'}</p>
-          <p className="text-gray-800 mt-4">{product.description}</p>
+        <div className="flex flex-col justify-between">
+          <div>
+            <p className="text-lg font-extrabold text-orange-600">Price: ${product.price?.toFixed(2)}</p>
+            <p className="text-gray-600">Stock: {product.stock}</p>
+            <p className="text-gray-600">Category: {product.categoryId?.name || 'Uncategorized'}</p>
+            <p className="text-gray-800 mt-4">{product.description}</p>
+          </div>
           <button
             onClick={handleAddToCart}
-            className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+            className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
           >
             Add to Cart
           </button>
         </div>
       </div>
 
-      <section className="mt-8">
-        <h2 className="text-2xl font-semibold text-orange-600 mb-4">Reviews</h2>
+      <section className="mt-12">
+        <h2 className="text-2xl font-extrabold text-orange-600 mb-6">Reviews</h2>
         {reviews.length === 0 ? (
-          <p className="text-gray-600">No reviews yet.</p>
+          <div className="text-center py-10 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100">
+            <p className="text-lg text-gray-600">No reviews yet. Be the first to review!</p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {reviews.map(review => (
-              <div key={review._id} className="bg-white rounded-lg shadow-md p-4">
-                <p className="text-gray-800">Rating: {review.rating}/5</p>
-                <p className="text-gray-600">{review.comment}</p>
-                <p className="text-gray-500 text-sm">By User {review.userId?.name || 'Anonymous'}</p>
+              <div key={review._id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 p-6 flex items-start hover:shadow-xl transition-all duration-300">
+                <div className="flex-shrink-0">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold">
+                    {review.userId?.name?.[0] || 'A'}
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <StarRating rating={review.rating} readOnly />
+                  <p className="text-gray-600 mt-2">{review.comment}</p>
+                  <p className="text-gray-500 text-sm">By {review.userId?.name || 'Anonymous'}</p>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        <form onSubmit={handleSubmitReview} className="mt-6 bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-orange-600 mb-4">Write a Review</h3>
-          <div className="mb-4">
-            <label className="block text-gray-700">Rating (1-5)</label>
-            <input
-              type="number"
-              min="1"
-              max="5"
-              value={reviewForm.rating}
-              onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
-              className="border rounded-lg p-2 w-full"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Comment</label>
-            <textarea
-              value={reviewForm.comment}
-              onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-              className="border rounded-lg p-2 w-full"
-              rows="4"
-              required
-            />
+        <form onSubmit={handleSubmitReview} className="mt-8 bg-white/80 backdrop-blur-sm p-8 rounded-xl border border-gray-100">
+          <h3 className="text-xl font-extrabold text-orange-600 mb-4">Write a Review</h3>
+          <div className="grid gap-6">
+            <div>
+              <label className="block text-gray-700 mb-2">Rating</label>
+              <StarRating
+                rating={reviewForm.rating}
+                setRating={(value) => setReviewForm({ ...reviewForm, rating: value })}
+              />
+            </div>
+            <div className="relative">
+              <textarea
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                className="peer border rounded-lg p-3 w-full focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                rows="4"
+                required
+                placeholder=" "
+              />
+              <label className="absolute top-0 left-3 -translate-y-1/2 bg-white/80 px-1 text-gray-700 text-sm peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 transition-all">
+                Comment
+              </label>
+            </div>
           </div>
           <button
             type="submit"
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+            className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
           >
             Submit Review
           </button>
