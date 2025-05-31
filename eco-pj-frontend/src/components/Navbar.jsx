@@ -72,10 +72,7 @@ function Navbar() {
           ) : (
             <>
               <Link to="/admin" className="text-gray-800 hover:text-orange-600 transition duration-300">Dashboard</Link>
-              <Link to="/admin/products/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Products</Link>
-              <Link to="/admin/orders/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Orders</Link>
-              <Link to="/admin/users/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Users</Link>
-              <Link to="/admin/categories/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Categories</Link>
+              
               <button
                 onClick={() => {
                   localStorage.removeItem('token');
