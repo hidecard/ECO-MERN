@@ -41,7 +41,7 @@ function Orders() {
   if (error) return (
     <div className="container mx-auto p-8 text-center">
       <p className="text-lg text-red-500">{error}</p>
-      <Link to="/products" className="mt-4 inline-block bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300">
+      <Link to="/" className="mt-4 inline-block bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300">
         Browse Products
       </Link>
     </div>
