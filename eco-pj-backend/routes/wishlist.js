@@ -7,12 +7,16 @@ const auth = require('../middleware/auth');
 // Get user's wishlist
 router.get('/', auth, async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOne({ userId: req.user.id }).populate('items.productId');
+    const wishlist = await Wishlist.findOne({ userId: req.user.id }).populate({
+      path: 'items.productId',
+      select: 'name price imageURLs categoryId',
+      populate: { path: 'categoryId', select: 'name' },
+    });
     if (!wishlist) return res.json({ items: [] });
     res.json(wishlist);
   } catch (error) {
     console.error('Get wishlist error:', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Failed to fetch wishlist' });
   }
 });
 
@@ -33,10 +37,15 @@ router.post('/', auth, async (req, res) => {
       wishlist.items.push({ productId });
     }
     await wishlist.save();
-    res.status(201).json(wishlist);
+    const populatedWishlist = await Wishlist.findById(wishlist._id).populate({
+      path: 'items.productId',
+      select: 'name price imageURLs categoryId',
+      populate: { path: 'categoryId', select: 'name' },
+    });
+    res.status(201).json(populatedWishlist);
   } catch (error) {
     console.error('Add to wishlist error:', error);
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: 'Failed to add to wishlist' });
   }
 });
 
@@ -47,10 +56,15 @@ router.delete('/:productId', auth, async (req, res) => {
     if (!wishlist) return res.status(404).json({ message: 'Wishlist not found' });
     wishlist.items = wishlist.items.filter(item => item.productId.toString() !== req.params.productId);
     await wishlist.save();
-    res.json(wishlist);
+    const populatedWishlist = await Wishlist.findById(wishlist._id).populate({
+      path: 'items.productId',
+      select: 'name price imageURLs categoryId',
+      populate: { path: 'categoryId', select: 'name' },
+    });
+    res.json(populatedWishlist || { items: [] });
   } catch (error) {
     console.error('Remove from wishlist error:', error);
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: 'Failed to remove from wishlist' });
   }
 });
 

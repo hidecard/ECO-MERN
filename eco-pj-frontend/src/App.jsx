@@ -18,7 +18,6 @@ import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useCart } from './context/CartContext';
 
 function AdminLayout({ children }) {
   const { token } = useCart();
@@ -30,7 +29,7 @@ function AdminLayout({ children }) {
           <Sidebar />
         </div>
       )}
-      <div className="flex-grow">{children}</div>
+      <div className="flex-grow p-4 sm:p-8">{children}</div>
     </div>
   );
 }
@@ -92,10 +91,21 @@ function App() {
                     </AdminLayout>
                   }
                 />
-                <Route path="*" element={<div className="container mx-auto p-4 text-center text-red-500">404: Page Not Found</div>} />
+                <Route path="*" element={<div className="container mx-auto p-4 sm:p-8 text-center text-red-500">404: Page Not Found</div>} />
               </Routes>
             </main>
-            <ToastContainer />
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="light"
+            />
           </div>
         </CartProvider>
       </AuthProvider>
