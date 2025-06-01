@@ -1,83 +1,82 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 import { getOrders } from '../lib/api';
+import { toast } from 'react-toastify';
 
 function Orders() {
+  const { token } = useCart();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      setLoading(true);
+      setError(null);
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Please log in to view orders');
-          setLoading(false);
-          return;
-        }
-        const data = await getOrders(token);
-        console.log('Orders data:', data);
-        setOrders(data);
-        setLoading(false);
+        const ordersData = await getOrders(token);
+        setOrders(ordersData);
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
         setError(error.message || 'Failed to load orders');
+      } finally {
         setLoading(false);
       }
     };
-    fetchOrders();
-  }, []);
+    fetchData();
+  }, [token, navigate]);
+
+  if (!token) return null;
 
   if (loading) return (
-    <div className="container mx-auto p-8 text-center">
-      <div className="flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-500"></div>
-      </div>
-      <p className="mt-4 text-xl text-gray-600">Loading orders...</p>
+    <div className="container mx-auto p-4 text-center">
+      <svg className="animate-spin h-8 w-8 text-orange-600 mx-auto" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
+      </svg>
+      <p className="mt-2 text-gray-600">Loading...</p>
     </div>
   );
 
   if (error) return (
-    <div className="container mx-auto p-8 text-center">
-      <p className="text-lg text-red-500">{error}</p>
-      <Link to="/" className="mt-4 inline-block bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300">
-        Browse Products
-      </Link>
+    <div className="container mx-auto p-4 text-center text-red-500">
+      <p className="text-lg font-semibold">{error}</p>
+      <button
+        onClick={() => window.location.reload()}
+        className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+      >
+        Try Again
+      </button>
     </div>
   );
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-5xl font-extrabold text-orange-600 mb-10">Your Orders</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold text-orange-600 mb-6">Your Orders</h1>
       {orders.length === 0 ? (
-        <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100">
-          <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10h6m-6 0H3m12 0h6M9 7h6M9 7H3m12 0h6" />
-          </svg>
-          <p className="mt-4 text-xl text-gray-600">No orders found.</p>
-          <Link to="/products" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
-            Shop Now
-          </Link>
-        </div>
+        <p className="text-gray-600">No orders found.</p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {orders.map(order => (
-            <div key={order._id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-              <h3 className="text-xl font-bold text-gray-800">Order ID: {order._id}</h3>
+            <div key={order._id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-xl transition-shadow duration-300">
+              <p className="text-gray-800 font-medium">Order ID: {order._id}</p>
               <p className="text-gray-600">Total: ${order.total.toFixed(2)}</p>
               <p className="text-gray-600">Status: {order.status}</p>
-              <h4 className="text-lg font-extrabold text-orange-600 mt-4">Items:</h4>
-              <div className="ml-4 mt-2 space-y-2">
-                {order.items.map(item => (
-                  <div key={item.productId._id} className="flex justify-between">
-                    <div>
-                      <p className="text-gray-800">{item.productId.name}</p>
-                      <p className="text-gray-600 text-sm">Quantity: {item.quantity}</p>
-                    </div>
-                    <p className="text-gray-600">${item.price.toFixed(2)}</p>
-                  </div>
-                ))}
+              <p className="text-gray-600">Ordered on: {new Date(order.createdAt).toLocaleDateString()}</p>
+              <div className="mt-2">
+                <p className="text-gray-700 font-medium">Items:</p>
+                <ul className="list-disc pl-5">
+                  {order.items.map(item => (
+                    <li key={item._id} className="text-gray-600">
+                      {item.productId?.name || 'Unknown Product'} - Quantity: {item.quantity} - Price: ${item.price.toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           ))}

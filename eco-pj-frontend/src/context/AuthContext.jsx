@@ -10,7 +10,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthContext useEffect running');
     const initializeAuth = async () => {
       const token = localStorage.getItem('token');
       if (token) {
@@ -22,7 +21,7 @@ export const AuthProvider = ({ children }) => {
           if (!response.ok) throw new Error('Invalid token');
           const userData = await response.json();
           const decoded = jwtDecode(token);
-          setUser({ ...userData, token, isAdmin: decoded.isAdmin || userData.isAdmin });
+          setUser({ ...userData, token, isAdmin: decoded.role === 'admin' });
           console.log('User set:', userData);
         } catch (error) {
           console.error('Failed to fetch user:', error);
@@ -43,7 +42,7 @@ export const AuthProvider = ({ children }) => {
       const { token, user: userData } = response;
       localStorage.setItem('token', token);
       const decoded = jwtDecode(token);
-      setUser({ ...userData, token, isAdmin: decoded.isAdmin || userData.isAdmin });
+      setUser({ ...userData, token, isAdmin: decoded.role === 'admin' });
       toast.success('Logged in successfully');
       return true;
     } catch (error) {
@@ -60,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       const { token, user: userData } = response;
       localStorage.setItem('token', token);
       const decoded = jwtDecode(token);
-      setUser({ ...userData, token, isAdmin: decoded.isAdmin || userData.isAdmin });
+      setUser({ ...userData, token, isAdmin: decoded.role === 'admin' });
       toast.success('Registered successfully');
       return true;
     } catch (error) {

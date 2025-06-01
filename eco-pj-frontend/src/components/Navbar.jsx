@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import jwtDecode from 'jwt-decode';
 
 function Navbar() {
   const { token, cart, setToken } = useCart();
@@ -8,19 +9,13 @@ function Navbar() {
   const cartItemCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkAdmin = () => {
       if (token) {
         try {
-          const response = await fetch('http://localhost:5000/api/admin/users', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (response.ok) {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
+          const decoded = jwtDecode(token);
+          setIsAdmin(decoded.role === 'admin');
         } catch (error) {
-          console.error('Failed to check admin status:', error);
+          console.error('Failed to decode token:', error);
           setIsAdmin(false);
         }
       } else {
@@ -30,14 +25,20 @@ function Navbar() {
     checkAdmin();
   }, [token]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    window.location.href = '/login';
+  };
+
   return (
-    <nav className="sticky top-0 bg-white/80 backdrop-blur-sm shadow-md p-4 z-50">
+    <nav className="sticky top-0 bg-white/90 backdrop-blur-md shadow-md p-4 z-50">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-orange-600 text-3xl font-extrabold tracking-tight">YHA Shop</Link>
         <div className="flex space-x-6 items-center">
           {!isAdmin ? (
             <>
-              <Link to="/" className="text-gray-800 hover:text-orange-600 transition duration-300">Home</Link>
+              <Link to="/" className="text-gray-800 hover:text-orange-600 transition duration-300 font-medium">Home</Link>
               {token && (
                 <>
                   <Link to="/wishlist" className="relative text-gray-800 hover:text-orange-600 transition duration-300" aria-label="Wishlist">
@@ -64,24 +65,16 @@ function Navbar() {
               )}
               {!token && (
                 <>
-                  <Link to="/login" className="text-gray-800 hover:text-orange-600 transition duration-300">Login</Link>
+                  <Link to="/login" className="text-gray-800 hover:text-orange-600 transition duration-300 font-medium">Login</Link>
                   <Link to="/register" className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300">Register</Link>
                 </>
               )}
             </>
           ) : (
             <>
-              <Link to="/admin" className="text-gray-800 hover:text-orange-600 transition duration-300">Dashboard</Link>
-              <Link to="/admin/products/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Products</Link>
-              <Link to="/admin/orders/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Orders</Link>
-              <Link to="/admin/users/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Users</Link>
-              <Link to="/admin/categories/list" className="text-gray-800 hover:text-orange-600 transition duration-300">Categories</Link>
+              <Link to="/admin" className="text-gray-800 hover:text-orange-600 transition duration-300 font-medium">Dashboard</Link>
               <button
-                onClick={() => {
-                  localStorage.removeItem('token');
-                  setToken(null);
-                  window.location.reload();
-                }}
+                onClick={handleLogout}
                 className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
               >
                 Logout

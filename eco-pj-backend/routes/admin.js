@@ -5,6 +5,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const authAdmin = require('../middleware/authAdmin');
+const bcrypt = require('bcryptjs');
 
 // Products
 router.get('/products', authAdmin, async (req, res) => {
@@ -86,7 +87,6 @@ router.post('/users', authAdmin, async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
-    const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
     const user = new User({ name, email, password: passwordHash, role: role || 'user' });
@@ -102,7 +102,6 @@ router.put('/users/:id', authAdmin, async (req, res) => {
     const { name, email, password, role } = req.body;
     const updateData = { name, email, role };
     if (password) {
-      const bcrypt = require('bcryptjs');
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(password, salt);
     }

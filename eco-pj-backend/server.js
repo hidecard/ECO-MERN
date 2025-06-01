@@ -11,43 +11,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Load Models
-require('./models/Category');
-require('./models/Product');
-require('./models/User');
-require('./models/Cart');
-require('./models/Order');
-require('./models/Review');
-require('./models/Wishlist');
-
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/wishlist', require('./routes/wishlist'));
-app.use('/api/admin', require('./routes/admin'));
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const orderRoutes = require('./routes/orders');
+const cartRoutes = require('./routes/cart');
+const wishlistRoutes = require('./routes/wishlist');
+const reviewRoutes = require('./routes/reviews');
+const adminRoutes = require('./routes/admin');
 
-// Error Handling Middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack);
-  res.status(500).json({ message: 'Internal server error' });
-});
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000,
-}).then(() => {
-  console.log('MongoDB Connected:', mongoose.connection.host);
-}).catch(err => {
-  console.error('MongoDB connection error:', err);
-});
+})
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((error) => console.error('MongoDB connection error:', error));
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

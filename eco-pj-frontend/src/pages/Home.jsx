@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getProducts } from '../lib/api';
+import { toast } from 'react-toastify';
 
 function Home() {
   const [products, setProducts] = useState([]);
@@ -39,17 +40,15 @@ function Home() {
 
   const handleAddToCart = async (productId) => {
     if (!token) {
-      alert('Please log in to add to cart');
+      toast.error('Please log in to add to cart');
       return;
     }
     try {
       await addItem(productId, 1);
-      // Assuming toast notification is used
-      // toast.success('Added to cart!');
-      alert('Added to cart!');
+      toast.success('Added to cart!');
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      alert(error.message || 'Failed to add to cart');
+      toast.error(error.message || 'Failed to add to cart');
     }
   };
 
@@ -73,13 +72,11 @@ function Home() {
 
   return (
     <div className="container mx-auto p-8">
-      {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl p-12 mb-12 text-center">
         <h1 className="text-5xl font-extrabold mb-4 tracking-tight">Welcome to YHA Shop</h1>
         <p className="text-xl">Discover the best products at unbeatable prices!</p>
       </div>
 
-      {/* Search Bar */}
       <div className="mb-8">
         <div className="relative max-w-md mx-auto">
           <input

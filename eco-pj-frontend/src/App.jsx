@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
@@ -15,22 +15,29 @@ import UsersAdmin from './pages/UsersAdmin';
 import CategoriesAdmin from './pages/CategoriesAdmin';
 import AdminDashboard from './pages/AdminDashboard';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useCart } from './context/CartContext';
+import jwtDecode from 'jwt-decode';
 
 function AdminLayout({ children }) {
   const { token } = useCart();
+  const { user } = useAuth();
+
+  // Check if user is admin
+  const isAdmin = token ? jwtDecode(token).role === 'admin' : false;
+
+  if (!token || !isAdmin) {
+    return <Navigate to="/login" />;
+  }
 
   return (
-    <div className="flex min-h-screen">
-      {token && (
-        <div className="md:w-64">
-          <Sidebar />
-        </div>
-      )}
-      <div className="flex-grow">{children}</div>
+    <div className="flex min-h-screen bg-gray-100">
+      <div className="md:w-64">
+        <Sidebar />
+      </div>
+      <div className="flex-grow p-6">{children}</div>
     </div>
   );
 }
@@ -53,7 +60,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route
-                  path="/admin" 
+                  path="/admin"
                   element={
                     <AdminLayout>
                       <AdminDashboard />

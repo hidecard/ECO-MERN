@@ -1,14 +1,12 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import { getCart, addToCart, updateCart, removeFromCart } from '../lib/api';
 
-// Create CartContext
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
 
-  // Fetch cart on mount or token change
   useEffect(() => {
     const fetchCart = async () => {
       try {
@@ -66,7 +64,6 @@ export const CartProvider = ({ children }) => {
   );
 };
 
-// Custom hook
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
