@@ -55,16 +55,22 @@ function Home() {
     let result = products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !selectedCategory || product.categoryId?.name === selectedCategory;
-      const matchesPrice =
-        (!priceRange.min || product.price >= Number(priceRange.min)) &&
-        (!priceRange.max || product.price <= Number(priceRange.max));
+      let matchesPrice = true;
+      const minPrice = Number(priceRange.min);
+      const maxPrice = Number(priceRange.max);
+      if (priceRange.min !== '' && !isNaN(minPrice) && minPrice >= 0) {
+        matchesPrice = matchesPrice && product.price >= minPrice;
+      }
+      if (priceRange.max !== '' && !isNaN(maxPrice) && maxPrice >= 0) {
+        matchesPrice = matchesPrice && product.price <= maxPrice;
+      }
       return matchesSearch && matchesCategory && matchesPrice;
     });
 
     if (sort === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
     } else if (sort === 'price-desc') {
-      result.sort((a, b) => b.price - a.price);
+      result.sort((a, b) => b.price - b.price);
     } else if (sort === 'name-asc') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -95,6 +101,20 @@ function Home() {
     } catch (error) {
       console.error('Failed to add to cart:', error);
       toast.error(error.message || 'Failed to add to cart');
+    }
+  };
+
+  const handlePriceRangeChange = (e, type) => {
+    const value = e.target.value;
+    if (value === '' || (Number(value) >= 0 && !isNaN(value))) {
+      setPriceRange(prev => {
+        const newRange = { ...prev, [type]: value };
+        if (newRange.min !== '' && newRange.max !== '' && Number(newRange.max) < Number(newRange.min)) {
+          toast.error('Max price must be greater than or equal to min price');
+          return prev;
+        }
+        return newRange;
+      });
     }
   };
 
@@ -296,18 +316,20 @@ function Home() {
             <input
               type="number"
               value={priceRange.min}
-              onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+              onChange={(e) => handlePriceRangeChange(e, 'min')}
               placeholder="Min Price"
-              className="p-3 rounded-lg border border-gray-200 w-24"
+              className="p-3 rounded-lg border border-gray-200 w-24 focus:ring-2 focus:ring-orange-500"
               min="0"
+              aria-label="Minimum price filter"
             />
             <input
               type="number"
               value={priceRange.max}
-              onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+              onChange={(e) => handlePriceRangeChange(e, 'max')}
               placeholder="Max Price"
-              className="p-3 rounded-lg border border-gray-200 w-24"
+              className="p-3 rounded-lg border border-gray-200 w-24 focus:ring-2 focus:ring-orange-500"
               min="0"
+              aria-label="Maximum price filter"
             />
           </div>
         </div>
@@ -359,6 +381,7 @@ function Home() {
                     <button
                       onClick={() => setQuickViewProduct(product)}
                       className="flex-1 text-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-orange-400 transition-all"
+                      aria-label={`Quick view for ${product.name}`}
                     >
                       Quick View
                     </button>
@@ -370,6 +393,7 @@ function Home() {
                           ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-400'
                           : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                       }`}
+                      aria-label={`Add ${product.name} to cart`}
                     >
                       {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
                     </button>
@@ -385,6 +409,7 @@ function Home() {
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 disabled:opacity-50 hover:bg-gray-300"
+                aria-label="Previous page"
               >
                 Previous
               </button>
@@ -397,6 +422,7 @@ function Home() {
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
+                  aria-label={`Page ${i + 1}`}
                 >
                   {i + 1}
                 </button>
@@ -405,6 +431,7 @@ function Home() {
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 disabled:opacity-50 hover:bg-gray-300"
+                aria-label="Next page"
               >
                 Next
               </button>
@@ -421,6 +448,7 @@ function Home() {
               <button
                 onClick={() => setQuickViewProduct(null)}
                 className="text-gray-500 hover:text-gray-700"
+                aria-label="Close quick view"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -431,20 +459,34 @@ function Home() {
               src={quickViewProduct.imageURLs?.[0] || 'https://via.placeholder.com/300'}
               alt={quickViewProduct.name}
               className="w-full h-48 object-cover rounded-lg mb-4"
+              loading="lazy"
             />
-            <p className="text-gray-600 mb-2">{quickViewProduct.description || 'No description available.'}</p>
+            <p className="text-sm text-gray-500 mb-2">{quickViewProduct.categoryId?.name || 'Uncategorized'}</p>
+            <div className="flex mb-2">
+              {[...Array(5)].map((_, i) => (
+                <svg
+                  key={i}
+                  className={`w-4 h-4 ${i < Math.round(quickViewProduct.averageRating || 0) ? 'text-yellow-400' : 'text-gray-300'} fill-current`}
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
+              ))}
+            </div>
             <p className="text-xl font-bold text-orange-600 mb-2">${quickViewProduct.price.toFixed(2)}</p>
-            <p className={`text-sm mb-4 ${quickViewProduct.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-sm mb-2 ${quickViewProduct.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
               {quickViewProduct.stock > 0 ? 'In Stock' : 'Out of Stock'}
             </p>
+            <p className="text-gray-600 mb-4 line-clamp-3">{quickViewProduct.description || 'No description available.'}</p>
             <button
               onClick={() => handleAddToCart(quickViewProduct._id, quickViewProduct.stock)}
               disabled={quickViewProduct.stock === 0}
-              className={`w-full px-4 py-2 rounded-lg ${
+              className={`w-full px-4 py-2 rounded-lg transition-all ${
                 quickViewProduct.stock > 0
-                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-400'
                   : 'bg-gray-300 text-gray-600 cursor-not-allowed'
               }`}
+              aria-label={`Add ${quickViewProduct.name} to cart`}
             >
               {quickViewProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
             </button>
