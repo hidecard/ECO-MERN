@@ -10,17 +10,31 @@ function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sort, setSort] = useState('');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [currentPage, setCurrentPage] = useState(1);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [bannerIndex, setBannerIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { addItem, token } = useCart();
   const productsPerPage = 12;
 
+  const banners = [
+    { image: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=2000', text: 'Summer Sale! Up to 50% Off' },
+    { image: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=2000', text: 'New Arrivals In Stock!' },
+    { image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=2000', text: 'Free Shipping on Orders Over $50' },
+  ];
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         console.log('Fetching products from:', 'http://localhost:5000/api/products');
-        const data = await getProducts();
+        let data = await getProducts();
+        data = data.map(product => ({
+          ...product,
+          averageRating: product.averageRating || Math.floor(Math.random() * 5 + 1), // Mock until backend updated
+        }));
         console.log('Products data:', data);
         setProducts(data);
         setFilteredProducts(data);
@@ -32,13 +46,20 @@ function Home() {
       }
     };
     fetchProducts();
+
+    const stored = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+    setRecentlyViewed(stored);
   }, []);
 
   useEffect(() => {
-    let result = products.filter(product =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (!selectedCategory || product.categoryId?.name === selectedCategory)
-    );
+    let result = products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || product.categoryId?.name === selectedCategory;
+      const matchesPrice =
+        (!priceRange.min || product.price >= Number(priceRange.min)) &&
+        (!priceRange.max || product.price <= Number(priceRange.max));
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
 
     if (sort === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
@@ -49,8 +70,15 @@ function Home() {
     }
 
     setFilteredProducts(result);
-    setCurrentPage(1); // Reset to page 1 on filter/sort change
-  }, [searchQuery, selectedCategory, sort, products]);
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, sort, priceRange, products]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBannerIndex(prev => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
 
   const handleAddToCart = async (productId, stock) => {
     if (!token) {
@@ -114,7 +142,6 @@ function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-orange-600 to-orange-400 text-white rounded-2xl p-8 md:p-16 mb-12 overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=2000')] opacity-20 bg-cover bg-center"></div>
         <div className="relative z-10 text-center">
@@ -129,7 +156,26 @@ function Home() {
         </div>
       </div>
 
-      {/* Featured Products Carousel */}
+      <div className="mb-12 relative h-48 rounded-2xl overflow-hidden">
+        <img
+          src={banners[bannerIndex].image}
+          alt="Promotion"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <p className="text-white text-xl md:text-2xl font-semibold">{banners[bannerIndex].text}</p>
+        </div>
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+          {banners.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setBannerIndex(i)}
+              className={`w-2 h-2 rounded-full ${i === bannerIndex ? 'bg-white' : 'bg-gray-400'}`}
+            />
+          ))}
+        </div>
+      </div>
+
       {products.length > 0 && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Products</h2>
@@ -142,10 +188,21 @@ function Home() {
                 <img
                   src={product.imageURLs?.[0] || 'https://via.placeholder.com/150'}
                   alt={product.name}
-                  className="w-full h-32 object-cover rounded-md mb-2"
+                  className="w-full h-32 object-cover rounded-lg mb-2"
                   loading="lazy"
                 />
                 <h3 className="text-sm font-semibold text-gray-800 line-clamp-1">{product.name}</h3>
+                <div className="flex mt-1">
+                  {[...Array(5)].map((_, i) => (
+                    <svg
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.round(product.averageRating || 0) ? 'text-yellow-400' : 'text-gray-300'} fill-current`}
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                    </svg>
+                  ))}
+                </div>
                 <p className="text-lg font-bold text-orange-600">${product.price.toFixed(2)}</p>
                 <button
                   onClick={() => handleAddToCart(product._id, product.stock)}
@@ -153,7 +210,7 @@ function Home() {
                   className={`w-full mt-2 px-4 py-2 rounded-lg text-sm ${
                     product.stock > 0
                       ? 'bg-orange-500 text-white hover:bg-orange-600'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                   }`}
                 >
                   {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
@@ -164,7 +221,40 @@ function Home() {
         </div>
       )}
 
-      {/* Filters and Search */}
+      {recentlyViewed.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Recently Viewed</h2>
+          <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {recentlyViewed.map(product => (
+              <div
+                key={product._id}
+                className="flex-none w-64 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-all"
+              >
+                <img
+                  src={product.imageURLs?.[0] || 'https://via.placeholder.com/150'}
+                  alt={product.name}
+                  className="w-full h-32 object-cover rounded-lg mb-2"
+                  loading="lazy"
+                />
+                <h3 className="text-sm font-semibold text-gray-800 line-clamp-1">{product.name}</h3>
+                <p className="text-lg font-bold text-orange-600">${product.price.toFixed(2)}</p>
+                <button
+                  onClick={() => handleAddToCart(product._id, product.stock)}
+                  disabled={product.stock === 0}
+                  className={`w-full mt-2 px-4 py-2 rounded-lg text-sm ${
+                    product.stock > 0
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  }`}
+                >
+                  {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative w-full md:w-96">
           <input
@@ -179,7 +269,7 @@ function Home() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -202,10 +292,27 @@ function Home() {
             <option value="price-desc">Price: High to Low</option>
             <option value="name-asc">Name: A-Z</option>
           </select>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={priceRange.min}
+              onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+              placeholder="Min Price"
+              className="p-3 rounded-lg border border-gray-200 w-24"
+              min="0"
+            />
+            <input
+              type="number"
+              value={priceRange.max}
+              onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+              placeholder="Max Price"
+              className="p-3 rounded-lg border border-gray-200 w-24"
+              min="0"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Products */}
       {paginatedProducts.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl shadow-md">
           <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -233,24 +340,35 @@ function Home() {
                 <div className="p-4">
                   <h2 className="text-lg font-semibold text-gray-800 line-clamp-2">{product.name}</h2>
                   <p className="text-sm text-gray-500">{product.categoryId?.name || 'Uncategorized'}</p>
+                  <div className="flex mt-1">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className={`w-4 h-4 ${i < Math.round(product.averageRating || 0) ? 'text-yellow-400' : 'text-gray-300'} fill-current`}
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                      </svg>
+                    ))}
+                  </div>
                   <p className="text-xl font-bold text-orange-600 mt-2">${product.price.toFixed(2)}</p>
                   <p className={`text-sm mt-1 ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                   </p>
                   <div className="flex gap-2 mt-4">
-                    <Link
-                      to={`/products/${product._id}`}
+                    <button
+                      onClick={() => setQuickViewProduct(product)}
                       className="flex-1 text-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-orange-400 transition-all"
                     >
-                      View Details
-                    </Link>
+                      Quick View
+                    </button>
                     <button
                       onClick={() => handleAddToCart(product._id, product.stock)}
                       disabled={product.stock === 0}
                       className={`flex-1 px-4 py-2 rounded-lg transition-all ${
                         product.stock > 0
                           ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-400'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                       }`}
                     >
                       {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
@@ -261,7 +379,6 @@ function Home() {
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-8 flex justify-center gap-2">
               <button
@@ -294,6 +411,45 @@ function Home() {
             </div>
           )}
         </>
+      )}
+
+      {quickViewProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">{quickViewProduct.name}</h3>
+              <button
+                onClick={() => setQuickViewProduct(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <img
+              src={quickViewProduct.imageURLs?.[0] || 'https://via.placeholder.com/300'}
+              alt={quickViewProduct.name}
+              className="w-full h-48 object-cover rounded-lg mb-4"
+            />
+            <p className="text-gray-600 mb-2">{quickViewProduct.description || 'No description available.'}</p>
+            <p className="text-xl font-bold text-orange-600 mb-2">${quickViewProduct.price.toFixed(2)}</p>
+            <p className={`text-sm mb-4 ${quickViewProduct.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {quickViewProduct.stock > 0 ? 'In Stock' : 'Out of Stock'}
+            </p>
+            <button
+              onClick={() => handleAddToCart(quickViewProduct._id, quickViewProduct.stock)}
+              disabled={quickViewProduct.stock === 0}
+              className={`w-full px-4 py-2 rounded-lg ${
+                quickViewProduct.stock > 0
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              {quickViewProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

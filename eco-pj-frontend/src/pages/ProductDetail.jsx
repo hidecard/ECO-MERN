@@ -51,6 +51,22 @@ function ProductDetail() {
         setProduct(productData);
         const reviewsData = await getReviews(id);
         setReviews(reviewsData);
+
+        // Store in recently viewed
+        const recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        const newItem = {
+          _id: productData._id,
+          name: productData.name,
+          price: productData.price,
+          stock: productData.stock,
+          imageURLs: productData.imageURLs,
+          categoryId: productData.categoryId,
+        };
+        const updated = [
+          newItem,
+          ...recentlyViewed.filter(item => item._id !== productData._id)
+        ].slice(0, 5);
+        localStorage.setItem('recentlyViewed', JSON.stringify(updated));
       } catch (error) {
         setError(error.message || 'Failed to load product or reviews');
       } finally {
@@ -65,6 +81,14 @@ function ProductDetail() {
     if (!token) {
       toast.error('Please log in to submit a review');
       navigate('/login');
+      return;
+    }
+    if (reviewForm.rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+    if (!reviewForm.comment.trim()) {
+      toast.error('Comment is required');
       return;
     }
     try {
@@ -88,6 +112,10 @@ function ProductDetail() {
     if (!token) {
       toast.error('Please log in to add to cart');
       navigate('/login');
+      return;
+    }
+    if (product.stock === 0) {
+      toast.error('This product is out of stock');
       return;
     }
     try {
@@ -143,16 +171,23 @@ function ProductDetail() {
         <div className="flex flex-col justify-between">
           <div>
             <p className="text-lg font-extrabold text-orange-600">Price: ${product.price?.toFixed(2)}</p>
-            <p className="text-gray-600">Stock: {product.stock}</p>
+            <p className={`text-sm mt-1 ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+            </p>
             <p className="text-gray-600">Category: {product.categoryId?.name || 'Uncategorized'}</p>
             <p className="text-gray-800 mt-4">{product.description}</p>
           </div>
           <button
             onClick={handleAddToCart}
-            className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+            disabled={product.stock === 0}
+            className={`mt-6 px-6 py-3 rounded-xl transition-all duration-300 ${
+              product.stock > 0
+                ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500'
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+            }`}
             aria-label={`Add ${product.name} to cart`}
           >
-            Add to Cart
+            {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
           </button>
         </div>
       </div>
