@@ -1,8 +1,37 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { getProducts } from '../lib/api';
+import { getProducts, getReviews, createReview } from '../lib/api';
 import { toast } from 'react-toastify';
+import jwt_decode from 'jwt-decode';
+import { EyeIcon } from '@heroicons/react/24/outline';
+
+function StarRating({ rating, setRating, readOnly = false }) {
+  const handleClick = (value) => {
+    if (!readOnly && setRating) {
+      setRating(value);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`w-5 h-5 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} ${
+            !readOnly ? 'cursor-pointer hover:text-yellow-500 transition-colors' : ''
+          }`}
+          fill="currentColor"
+          viewBox="0 0 24 24"
+          onClick={() => handleClick(star)}
+          aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+        >
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
 
 function Home() {
   const [products, setProducts] = useState([]);
@@ -17,7 +46,10 @@ function Home() {
   const [bannerIndex, setBannerIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [quickViewReviews, setQuickViewReviews] = useState([]);
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
   const { addItem, token } = useCart();
+  const navigate = useNavigate();
   const productsPerPage = 12;
 
   const banners = [
@@ -50,6 +82,21 @@ function Home() {
     const stored = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
     setRecentlyViewed(stored);
   }, []);
+
+  useEffect(() => {
+    if (quickViewProduct) {
+      const fetchReviews = async () => {
+        try {
+          const reviewsData = await getReviews(quickViewProduct._id);
+          setQuickViewReviews(reviewsData);
+        } catch (error) {
+          console.error('Failed to fetch reviews:', error);
+          toast.error('Failed to load reviews');
+        }
+      };
+      fetchReviews();
+    }
+  }, [quickViewProduct]);
 
   useEffect(() => {
     let result = products.filter(product => {
@@ -89,6 +136,7 @@ function Home() {
   const handleAddToCart = async (productId, stock) => {
     if (!token) {
       toast.error('Please log in to add to cart');
+      navigate('/login');
       return;
     }
     if (stock === 0) {
@@ -118,6 +166,39 @@ function Home() {
     }
   };
 
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!token) {
+      toast.error('Please log in to submit a review');
+      navigate('/login');
+      return;
+    }
+    if (reviewForm.rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+    if (!reviewForm.comment.trim()) {
+      toast.error('Comment is required');
+      return;
+    }
+    try {
+      const decoded = jwt_decode(token);
+      const reviewData = {
+        productId: quickViewProduct._id,
+        userId: decoded.id,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      };
+      const newReview = await createReview(token, reviewData);
+      setQuickViewReviews([...quickViewReviews, newReview]);
+      setReviewForm({ rating: 0, comment: '' });
+      toast.success('Review submitted successfully!');
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      toast.error(error.message || 'Failed to submit review');
+    }
+  };
+
   const categories = [...new Set(products.map(p => p.categoryId?.name || 'Uncategorized'))];
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const paginatedProducts = filteredProducts.slice(
@@ -131,11 +212,11 @@ function Home() {
         <div className="h-64 bg-gray-200 rounded-lg"></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-md p-4">
-              <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
-              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+            <div key={i} className="bg-white py-10 rounded-lg shadow-md p-4">
+              <div className="flex justify-center items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-600"></div>
+              </div>
+              <p className="mt-4 text-center text-lg text-gray-600">Loading...</p>
             </div>
           ))}
         </div>
@@ -144,15 +225,12 @@ function Home() {
   );
 
   if (error) return (
-    <div className="container mx-auto px-4 py-16 text-center">
+    <div className="container mx-auto px-4 py-12 sm:p-8">
       <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
-        <svg className="mx-auto h-16 w-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="mt-4 text-lg text-gray-700">{error}</p>
+        <p className="text-lg font-semibold text-center text-red-600">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-6 bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 focus:ring-2 focus:ring-orange-400 transition-all"
+          className="mt-4 w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white font-semibold px-6 py-3 rounded-lg hover:from-orange-700 hover:to-orange-800 focus:ring-2 focus:ring-orange-600 transition-all duration-300"
         >
           Try Again
         </button>
@@ -312,26 +390,7 @@ function Home() {
             <option value="price-desc">Price: High to Low</option>
             <option value="name-asc">Name: A-Z</option>
           </select>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={priceRange.min}
-              onChange={(e) => handlePriceRangeChange(e, 'min')}
-              placeholder="Min Price"
-              className="p-3 rounded-lg border border-gray-200 w-24 focus:ring-2 focus:ring-orange-500"
-              min="0"
-              aria-label="Minimum price filter"
-            />
-            <input
-              type="number"
-              value={priceRange.max}
-              onChange={(e) => handlePriceRangeChange(e, 'max')}
-              placeholder="Max Price"
-              className="p-3 rounded-lg border border-gray-200 w-24 focus:ring-2 focus:ring-orange-500"
-              min="0"
-              aria-label="Maximum price filter"
-            />
-          </div>
+        
         </div>
       </div>
 
@@ -383,7 +442,7 @@ function Home() {
                       className="flex-1 text-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-orange-400 transition-all"
                       aria-label={`Quick view for ${product.name}`}
                     >
-                      Quick View
+                      <EyeIcon className="w-5 h-5 mx-auto" />
                     </button>
                     <button
                       onClick={() => handleAddToCart(product._id, product.stock)}
@@ -442,7 +501,7 @@ function Home() {
 
       {quickViewProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-800">{quickViewProduct.name}</h3>
               <button
@@ -478,18 +537,77 @@ function Home() {
               {quickViewProduct.stock > 0 ? 'In Stock' : 'Out of Stock'}
             </p>
             <p className="text-gray-600 mb-4 line-clamp-3">{quickViewProduct.description || 'No description available.'}</p>
-            <button
-              onClick={() => handleAddToCart(quickViewProduct._id, quickViewProduct.stock)}
-              disabled={quickViewProduct.stock === 0}
-              className={`w-full px-4 py-2 rounded-lg transition-all ${
-                quickViewProduct.stock > 0
-                  ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-400'
-                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-              }`}
-              aria-label={`Add ${quickViewProduct.name} to cart`}
-            >
-              {quickViewProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-            </button>
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => handleAddToCart(quickViewProduct._id, quickViewProduct.stock)}
+                disabled={quickViewProduct.stock === 0}
+                className={`flex-1 px-4 py-2 rounded-lg transition-all ${
+                  quickViewProduct.stock > 0
+                    ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-400'
+                    : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                }`}
+                aria-label={`Add ${quickViewProduct.name} to cart`}
+              >
+                {quickViewProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+              </button>
+              <Link
+                to={`/products/${quickViewProduct._id}`}
+                className="flex-1 text-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-orange-400 transition-all"
+                onClick={() => setQuickViewProduct(null)}
+                aria-label={`View details for ${quickViewProduct.name}`}
+              >
+                View Details
+              </Link>
+            </div>
+
+            <div className="mt-4">
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">Reviews</h4>
+              {quickViewReviews.length === 0 ? (
+                <p className="text-gray-600">No reviews yet. Be the first to review!</p>
+              ) : (
+                <div className="space-y-4 max-h-40 overflow-y-auto">
+                  {quickViewReviews.map(review => (
+                    <div key={review._id} className="border-t pt-2">
+                      <StarRating rating={review.rating} readOnly />
+                      <p className="text-gray-600 text-sm mt-1">{review.comment}</p>
+                      <p className="text-gray-500 text-xs">By {review.userId?.name || 'Anonymous'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="mt-4">
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">Write a Review</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 text-sm mb-1" htmlFor="quick-view-rating">Rating</label>
+                  <StarRating
+                    rating={reviewForm.rating}
+                    setRating={(value) => setReviewForm({ ...reviewForm, rating: value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 text-sm mb-1" htmlFor="quick-view-comment">Comment</label>
+                  <textarea
+                    id="quick-view-comment"
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-orange-500 transition-all"
+                    rows="3"
+                    required
+                    aria-label="Review comment"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 focus:ring-2 focus:ring-orange-400 transition-all"
+                  aria-label="Submit review"
+                >
+                  Submit Review
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
