@@ -1,30 +1,58 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getProduct, getReviews, createReview } from '../lib/api';
 import { toast } from 'react-toastify';
+import jwt_decode from 'jwt-decode';
+
+function StarRating({ rating, setRating, readOnly = false }) {
+  const handleClick = (value) => {
+    if (!readOnly && setRating) {
+      setRating(value);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`w-6 h-6 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} ${
+            !readOnly ? 'cursor-pointer hover:text-yellow-500 transition-colors duration-200' : ''
+          }`}
+          fill="currentColor"
+          viewBox="0 0 24 24"
+          onClick={() => handleClick(star)}
+          aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+        >
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
 
 function ProductDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { token, addItem } = useCart();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const [productData, reviewsData] = await Promise.all([
-          getProduct(id),
-          getReviews(id),
-        ]);
+        const productData = await getProduct(id);
         setProduct(productData);
+        const reviewsData = await getReviews(id);
         setReviews(reviewsData);
       } catch (error) {
-        setError(error.message || 'Failed to load product');
+        setError(error.message || 'Failed to load product or reviews');
       } finally {
         setLoading(false);
       }
@@ -32,131 +60,165 @@ function ProductDetail() {
     fetchData();
   }, [id]);
 
-  const handleAddToCart = async () => {
-    if (!token) {
-      toast.error('Please log in to add to cart');
-      return;
-    }
-    try {
-      await addItem(id, 1);
-      toast.success('Added to cart');
-    } catch (error) {
-      toast.error(error.message || 'Failed to add to cart');
-    }
-  };
-
-  const handleReviewSubmit = async (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!token) {
       toast.error('Please log in to submit a review');
+      navigate('/login');
       return;
     }
     try {
-      const newReview = await createReview(token, { productId: id, ...reviewForm });
+      const decoded = jwt_decode(token);
+      const reviewData = {
+        productId: id,
+        userId: decoded.id,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      };
+      const newReview = await createReview(token, reviewData);
       setReviews([...reviews, newReview]);
-      setReviewForm({ rating: 5, comment: '' });
-      toast.success('Review submitted');
+      setReviewForm({ rating: 0, comment: '' });
+      toast.success('Review submitted successfully!');
     } catch (error) {
       toast.error(error.message || 'Failed to submit review');
     }
   };
 
+  const handleAddToCart = async () => {
+    if (!token) {
+      toast.error('Please log in to add to cart');
+      navigate('/login');
+      return;
+    }
+    try {
+      await addItem(id, 1);
+      toast.success('Added to cart!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to add to cart');
+    }
+  };
+
   if (loading) return (
-    <div className="container mx-auto p-4 text-center">
-      <svg className="animate-spin h-8 w-8 text-orange-600 mx-auto" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" className="opacity-25" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8 v-8h8v8 8a8 8 0 01-8 8 8 8 0 01-8-8z" />
-      </svg>
-      <p className="mt-2 text-gray-600">Loading...</p>
+    <div className="container mx-auto p-4 sm:p-8 text-center">
+      <div className="flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-500"></div>
+      </div>
+      <p className="mt-4 text-lg text-gray-600">Loading...</p>
     </div>
   );
 
   if (error) return (
-    <div className="container mx-auto p-4 text-center text-red-500">
-      <p className="text-lg font-semibold">{error}</p>
+    <div className="container mx-auto p-4 sm:p-8 text-center">
+      <p className="text-lg text-red-500">{error}</p>
       <button
-        onClick={() => navigate('/')}
-        className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+        onClick={() => window.location.reload()}
+        className="mt-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
       >
-        Back to Home
+        Try Again
       </button>
     </div>
   );
 
+  if (!product) return (
+    <div className="container mx-auto p-4 sm:p-8 text-center">
+      <p className="text-lg text-red-500">Product not found</p>
+      <Link to="/" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
+        Back to Products
+      </Link>
+    </div>
+  );
+
   return (
-    <div className="container mx-auto p-4">
-      <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="container mx-auto p-4 sm:p-8">
+      <h1 className="text-3xl sm:text-5xl font-extrabold text-orange-600 mb-8 sm:mb-10">{product.name}</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10">
+        <div>
+          <img
+            src={product.imageURLs?.[0] || 'https://via.placeholder.com/150'}
+            alt={product.name}
+            className="w-full h-64 sm:h-[32rem] object-cover rounded-xl"
+            loading="lazy"
+          />
+        </div>
+        <div className="flex flex-col justify-between">
           <div>
-            <img
-              src={product.imageURLs?.[0] || 'https://via.placeholder.com/300'}
-              alt={product.name}
-              className="w-full rounded-lg"
-            />
+            <p className="text-lg font-extrabold text-orange-600">Price: ${product.price?.toFixed(2)}</p>
+            <p className="text-gray-600">Stock: {product.stock}</p>
+            <p className="text-gray-600">Category: {product.categoryId?.name || 'Uncategorized'}</p>
+            <p className="text-gray-800 mt-4">{product.description}</p>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-orange-600 mb-2">{product.name}</h1>
-            <p className="text-gray-600 mb-2">Category: {product.categoryId?.name || 'Uncategorized'}</p>
-            <p className="text-gray-600 mb-2">{product.description}</p>
-            <p className="text-2xl font-bold text-orange-600 mb-2">${product.price.toFixed(2)}</p>
-            <p className="text-gray-600 mb-4">Stock: {product.stock}</p>
-            <button
-              onClick={handleAddToCart}
-              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
-              disabled={product.stock === 0}
-            >
-              {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </button>
-          </div>
+          <button
+            onClick={handleAddToCart}
+            className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+            aria-label={`Add ${product.name} to cart`}
+          >
+            Add to Cart
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-orange-600 mb-4">Reviews</h2>
+      <section className="mt-8 sm:mt-12">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-orange-600 mb-6">Reviews</h2>
         {reviews.length === 0 ? (
-          <p className="text-gray-600">No reviews yet.</p>
+          <div className="text-center py-10 bg-white/90 rounded-xl border border-gray-200">
+            <p className="text-lg text-gray-600">No reviews yet. Be the first to review!</p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {reviews.map(review => (
-              <div key={review._id} className="border-b pb-2">
-                <p className="text-gray-800 font-medium">{review.userId?.name || 'Anonymous'}</p>
-                <p className="text-yellow-500">{'★'.repeat(review.rating)}</p>
-                <p className="text-gray-600">{review.comment}</p>
+              <div key={review._id} className="bg-white/90 rounded-xl border border-gray-200 p-4 sm:p-6 flex items-start hover:shadow-xl transition-all duration-300">
+                <div className="flex-shrink-0">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold">
+                    {review.userId?.name?.[0] || 'A'}
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <StarRating rating={review.rating} readOnly />
+                  <p className="text-gray-600 mt-2">{review.comment}</p>
+                  <p className="text-gray-500 text-sm">By {review.userId?.name || 'Anonymous'}</p>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        <h3 className="text-xl font-semibold text-orange-600 mt-6 mb-2">Write a Review</h3>
-        <form onSubmit={handleReviewSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700">Rating</label>
-            <select
-              value={reviewForm.rating}
-              onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
-              className="border rounded-lg p-2 w-full focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              {[1, 2, 3, 4, 5].map(num => (
-                <option key={num} value={num}>{num} Stars</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700">Comment</label>
-            <textarea
-              value={reviewForm.comment}
-              onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-              className="border rounded-lg p-2 w-full focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
+        <form onSubmit={handleSubmitReview} className="mt-8 bg-white/90 p-6 sm:p-8 rounded-xl border border-gray-200">
+          <h3 className="text-lg sm:text-xl font-extrabold text-orange-600 mb-4">Write a Review</h3>
+          <div className="grid gap-6">
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="rating">Rating</label>
+              <StarRating
+                rating={reviewForm.rating}
+                setRating={(value) => setReviewForm({ ...reviewForm, rating: value })}
+              />
+            </div>
+            <div className="relative">
+              <textarea
+                id="comment"
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                className="peer border rounded-lg p-3 w-full focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                rows="4"
+                required
+                placeholder=" "
+              />
+              <label
+                htmlFor="comment"
+                className="absolute top-0 left-3 -translate-y-1/2 bg-white/90 px-1 text-gray-700 text-sm peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 transition-all"
+              >
+                Comment
+              </label>
+            </div>
           </div>
           <button
             type="submit"
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+            className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+            aria-label="Submit review"
           >
             Submit Review
           </button>
         </form>
-      </div>
+      </section>
     </div>
   );
 }
