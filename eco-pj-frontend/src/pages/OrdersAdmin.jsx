@@ -22,6 +22,7 @@ function OrdersAdmin() {
       setError(null);
       try {
         const ordersData = await getAdminOrders(token);
+        console.log('Orders data:', ordersData); // Debug
         setOrders(ordersData);
       } catch (error) {
         setError(error.message || 'Failed to load orders');
@@ -119,9 +120,9 @@ function OrdersAdmin() {
                         <li
                           key={item.productId._id}
                           className="text-gray-600 flex justify-between"
-                          aria-label={`Product ${item.productId.name}, Quantity ${item.quantity}`}
+                          aria-label={`Product ${item.productId.name || 'Unknown'}, Quantity ${item.quantity}`}
                         >
-                          <span>{item.productId.name}</span>
+                          <span>{item.productId.name || 'Unknown Product'}</span>
                           <span>Qty: {item.quantity}</span>
                         </li>
                       ))}

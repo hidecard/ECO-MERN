@@ -10,6 +10,10 @@ const mongoose = require('mongoose');
 router.post('/', auth, async (req, res) => {
   try {
     const { shippingInfo, paymentMethod = 'cod' } = req.body;
+    if (!shippingInfo || !shippingInfo.address || !shippingInfo.city || !shippingInfo.postalCode || !shippingInfo.country) {
+      return res.status(400).json({ message: 'Complete shipping information is required' });
+    }
+
     const cart = await Cart.findOne({ userId: req.user.id }).populate('items.productId');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: 'Cart is empty' });
@@ -37,7 +41,7 @@ router.post('/', auth, async (req, res) => {
     cart.items = [];
     await cart.save();
 
-    res.json({ message: 'Order created successfully' });
+    res.json({ message: 'Order created successfully', order });
   } catch (error) {
     console.error('Create order error:', error);
     res.status(400).json({ message: error.message });
@@ -47,7 +51,7 @@ router.post('/', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user.id })
-      .populate('items.productId')
+      .populate('items.productId', 'name price')
       .populate('userId', 'name');
     res.json(orders);
   } catch (error) {
@@ -57,15 +61,13 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Admin routes
-router.get('/admin', auth, async (req, res) => {
+router.get('/admin/orders', auth, async (req, res) => {
   try {
-    // Verify admin role (assuming middleware or JWT check)
-    const decoded = req.user;
-    if (decoded.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const orders = await Order.find()
-      .populate('items.productId')
+      .populate('items.productId', 'name price')
       .populate('userId', 'name');
     res.json(orders);
   } catch (error) {
@@ -74,13 +76,12 @@ router.get('/admin', auth, async (req, res) => {
   }
 });
 
-router.put('/admin/:id', auth, async (req, res) => {
+router.put('/admin/orders/:id', auth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { status } = req.body;
-    const decoded = req.user;
-    if (decoded.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       await session.abortTransaction();
       return res.status(403).json({ message: 'Admin access required' });
     }
@@ -91,7 +92,7 @@ router.put('/admin/:id', auth, async (req, res) => {
     }
 
     const order = await Order.findById(req.params.id)
-      .populate('items.productId')
+      .populate('items.productId', 'name price')
       .session(session);
     if (!order) {
       await session.abortTransaction();
@@ -115,11 +116,25 @@ router.put('/admin/:id', auth, async (req, res) => {
       }
     }
 
+    // If reverting from 'confirmed' to another status, restore stock
+    if (order.status === 'confirmed' && status !== 'confirmed') {
+      for (const item of order.items) {
+        const product = await Product.findById(item.productId._id).session(session);
+        if (product) {
+          product.stock += item.quantity;
+          await product.save({ session });
+        }
+      }
+    }
+
     order.status = status;
     const updatedOrder = await order.save({ session });
 
     await session.commitTransaction();
-    res.json(updatedOrder);
+    const populatedOrder = await Order.findById(req.params.id)
+      .populate('items.productId', 'name price')
+      .populate('userId', 'name');
+    res.json(populatedOrder);
   } catch (error) {
     await session.abortTransaction();
     console.error('Update admin order error:', error);

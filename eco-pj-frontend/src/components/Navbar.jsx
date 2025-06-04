@@ -41,11 +41,7 @@ function Navbar() {
               <Link to="/" className="text-gray-800 hover:text-orange-600 transition duration-300 font-medium">Home</Link>
               {token && (
                 <>
-                  <Link to="/wishlist" className="relative text-gray-800 hover:text-orange-600 transition duration-300" aria-label="Wishlist">
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 0 4.5 4.5 0 010 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
-                    </svg>
-                  </Link>
+                  
                   <Link to="/orders" className="relative text-gray-800 hover:text-orange-600 transition duration-300" aria-label="Orders">
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10h6m-6 0H3m12 0h6M9 7h6M9 7H3m12 0h6" />
