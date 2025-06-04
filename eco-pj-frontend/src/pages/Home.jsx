@@ -246,7 +246,7 @@ function Home() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight animate-fade-in">Welcome to YHA Shop</h1>
           <p className="text-lg md:text-xl mb-6">Discover top-quality products at unbeatable prices!</p>
           <Link
-            to="/products"
+            to="/"
             className="inline-block bg-white text-orange-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 focus:ring-2 focus:ring-orange-400 transition-all"
           >
             Shop Now
