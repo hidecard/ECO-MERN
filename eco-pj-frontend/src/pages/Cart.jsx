@@ -1,8 +1,11 @@
+// Cart.js
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 function Cart() {
   const { cart, updateItem, removeItem } = useCart();
+
+  console.log('Current cart state:', cart); // Debug log to verify cart state
 
   const handleQuantityChange = (productId, delta) => {
     const item = cart?.items?.find(item => item.productId._id === productId);
@@ -23,7 +26,7 @@ function Cart() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18M3 3l2 18h14l2-18H3zm5 7h8" />
           </svg>
           <p className="mt-4 text-xl text-gray-600">Your cart is empty.</p>
-          <Link to="/products" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
+          <Link to="/" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
             Shop Now
           </Link>
         </div>
@@ -45,7 +48,7 @@ function Cart() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18M3 3l2 18h14l2-18H3zm5 7h8" />
           </svg>
           <p className="mt-4 text-xl text-gray-600">Your cart is empty.</p>
-          <Link to="/" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
+          <Link to="/products" className="mt-4 inline-block text-orange-500 hover:text-orange-600 font-semibold">
             Shop Now
           </Link>
         </div>
