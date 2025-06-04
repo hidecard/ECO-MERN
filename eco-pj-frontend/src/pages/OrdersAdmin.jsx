@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getAdminOrders, updateAdminOrder } from '../lib/api';
+import { toast } from 'react-toastify';
 
 function OrdersAdmin() {
   const { token } = useCart();
@@ -35,9 +36,9 @@ function OrdersAdmin() {
     try {
       const updatedOrder = await updateAdminOrder(token, id, { status });
       setOrders(orders.map(o => (o._id === id ? updatedOrder : o)));
-      alert('Order status updated');
+      toast.success('Order status updated');
     } catch (error) {
-      alert(error.message || 'Failed to update order');
+      toast.error(error.message || 'Failed to update order');
     }
   };
 
@@ -78,7 +79,7 @@ function OrdersAdmin() {
   );
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto">
       <h1 className="text-3xl font-bold text-orange-600 mb-6">Manage Orders</h1>
       <h2 className="text-2xl font-semibold text-orange-600 mb-4">Orders List</h2>
       {orders.length === 0 ? (
@@ -87,20 +88,46 @@ function OrdersAdmin() {
         <div className="space-y-4">
           {orders.map(order => (
             <div key={order._id} className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-gray-800">Order ID: {order._id}</p>
-              <p className="text-gray-600">User: {order.userId?.name || 'Unknown'}</p>
-              <p className="text-gray-600">Total: ${order.total.toFixed(2)}</p>
-              <div className="flex items-center space-x-2">
-                <p className="text-gray-600">Status:</p>
-                <select
-                  value={order.status}
-                  onChange={(e) => handleUpdateStatus(order._id, e.target.value)}
-                  className="border rounded-lg p-2"
-                >
-                  {['pending', 'processing', 'shipped', 'delivered'].map(status => (
-                    <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-gray-800 font-semibold">Order ID: {order._id}</p>
+                  <p className="text-gray-600">User: {order.userId?.name || 'Unknown'}</p>
+                  <p className="text-gray-600">Total: ${order.total.toFixed(2)}</p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <p className="text-gray-600">Status:</p>
+                    <select
+                      value={order.status}
+                      onChange={(e) => handleUpdateStatus(order._id, e.target.value)}
+                      className="border rounded-lg p-2 focus:ring-2 focus:ring-orange-500"
+                      aria-label={`Update status for order ${order._id}`}
+                    >
+                      {['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map(status => (
+                        <option key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-800 font-semibold mb-2">Ordered Items:</p>
+                  {order.items.length === 0 ? (
+                    <p className="text-gray-600">No items in this order.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {order.items.map(item => (
+                        <li
+                          key={item.productId._id}
+                          className="text-gray-600 flex justify-between"
+                          aria-label={`Product ${item.productId.name}, Quantity ${item.quantity}`}
+                        >
+                          <span>{item.productId.name}</span>
+                          <span>Qty: {item.quantity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           ))}
