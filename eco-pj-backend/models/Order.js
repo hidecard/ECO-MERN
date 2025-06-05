@@ -1,4 +1,3 @@
-// C:\Users\Lenovo\Desktop\ECO MERN\eco-pj-backend\models\Order.js
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({

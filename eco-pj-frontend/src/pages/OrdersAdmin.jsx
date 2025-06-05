@@ -57,30 +57,34 @@ function OrdersAdmin() {
     );
   }
 
-  if (loading) return (
-    <div className="container mx-auto p-4 text-center">
-      <svg className="animate-spin h-8 w-8 text-orange-600 mx-auto" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
-      </svg>
-      <p className="mt-2 text-gray-600">Loading...</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 text-center">
+        <svg className="animate-spin h-8 w-8 text-orange-600 mx-auto" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
+        </svg>
+        <p className="mt-2 text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
-  if (error) return (
-    <div className="container mx-auto p-4 text-center text-red-500">
-      {error}
-      <button
-        onClick={() => window.location.reload()}
-        className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
-      >
-        Try Again
-      </button>
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 text-center text-red-500">
+        {error}
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold text-orange-600 mb-6">Manage Orders</h1>
       <h2 className="text-2xl font-semibold text-orange-600 mb-4">Orders List</h2>
       {orders.length === 0 ? (
@@ -92,7 +96,7 @@ function OrdersAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-gray-800 font-semibold">Order ID: {order._id}</p>
-                  <p className="text-gray-600">User: {order.userId?.name || 'Unknown'}</p>
+                  <p className="text-gray-600">User: {order.userId?.name || 'Unknown User'}</p>
                   <p className="text-gray-600">Total: ${order.total.toFixed(2)}</p>
                   <div className="flex items-center space-x-2 mt-2">
                     <p className="text-gray-600">Status:</p>
@@ -118,11 +122,11 @@ function OrdersAdmin() {
                     <ul className="space-y-2">
                       {order.items.map(item => (
                         <li
-                          key={item.productId._id}
+                          key={item._id}
                           className="text-gray-600 flex justify-between"
-                          aria-label={`Product ${item.productId.name || 'Unknown'}, Quantity ${item.quantity}`}
+                          aria-label={`Product ${item.productId?.name || 'Product Not Found'}, Quantity ${item.quantity}`}
                         >
-                          <span>{item.productId.name || 'Unknown Product'}</span>
+                          <span>{item.productId?.name || 'Product Not Found'}</span>
                           <span>Qty: {item.quantity}</span>
                         </li>
                       ))}

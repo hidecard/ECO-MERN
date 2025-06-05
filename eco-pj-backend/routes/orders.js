@@ -69,6 +69,7 @@ router.get('/admin/orders', auth, async (req, res) => {
     const orders = await Order.find()
       .populate('items.productId', 'name price')
       .populate('userId', 'name');
+    console.log('Fetched admin orders:', orders); // Debug
     res.json(orders);
   } catch (error) {
     console.error('Get admin orders error:', error);
@@ -134,6 +135,7 @@ router.put('/admin/orders/:id', auth, async (req, res) => {
     const populatedOrder = await Order.findById(req.params.id)
       .populate('items.productId', 'name price')
       .populate('userId', 'name');
+    console.log('Updated admin order:', populatedOrder); // Debug
     res.json(populatedOrder);
   } catch (error) {
     await session.abortTransaction();
