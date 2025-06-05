@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../lib/api';
 import { useCart } from '../context/CartContext';
-import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 function Register() {
   const [name, setName] = useState('');
@@ -17,7 +18,6 @@ function Register() {
     setError(null);
     setLoading(true);
 
-    // Basic input validation
     if (name.trim().length < 2) {
       setError('Name must be at least 2 characters');
       setLoading(false);
@@ -35,15 +35,17 @@ function Register() {
     }
 
     try {
-      console.log('Registering with:', { name, email }); // Debug
+      console.log('Registering with:', { name, email });
       const { token } = await register({ name, email, password });
-      console.log('Register token:', token); // Debug
+      console.log('Register token:', token);
       localStorage.setItem('token', token);
       setToken(token);
+      toast.success('Registered successfully');
       navigate('/');
     } catch (error) {
       console.error('Register error:', error);
       setError(error.message || 'Failed to register. Email may already be in use.');
+      toast.error(error.message || 'Failed to register');
     } finally {
       setLoading(false);
     }
@@ -131,9 +133,9 @@ function Register() {
       </form>
       <p className="mt-4 text-center text-gray-600">
         Already have an account?{' '}
-        <a href="/login" className="text-orange-500 hover:text-orange-600">
+        <Link to="/login" className="text-orange-500 hover:text-orange-600">
           Login
-        </a>
+        </Link>
       </p>
     </div>
   );

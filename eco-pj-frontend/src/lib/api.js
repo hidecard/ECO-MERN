@@ -115,36 +115,10 @@ export const removeFromCart = async (token, productId) => {
   return handleResponse(response);
 };
 
-// Wishlist
-export const getWishlist = async (token) => {
-  const response = await fetch(`${API_URL}/wishlist`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return handleResponse(response);
-};
-
-export const addToWishlist = async (token, productId) => {
-  const response = await fetch(`${API_URL}/wishlist`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ productId }),
-  });
-  return handleResponse(response);
-};
-
-export const removeFromWishlist = async (token, productId) => {
-  const response = await fetch(`${API_URL}/wishlist/${productId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return handleResponse(response);
-};
 
 // Orders
 export const createOrder = async (token, orderData) => {
+  console.log('Creating order at:', `${API_URL}/orders`, orderData);
   const response = await fetch(`${API_URL}/orders`, {
     method: 'POST',
     headers: {
@@ -157,6 +131,7 @@ export const createOrder = async (token, orderData) => {
 };
 
 export const getOrders = async (token) => {
+  console.log('Fetching orders from:', `${API_URL}/orders`);
   const response = await fetch(`${API_URL}/orders`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -297,7 +272,7 @@ export const createAdminCategory = async (token, categoryData) => {
 
 export const updateAdminCategory = async (token, id, categoryData) => {
   console.log('Updating category:', id, categoryData);
-  const response = await fetch(`${API_URL}/admin/categories/${id}`, {
+  const response = fetch(`${API_URL}/admin/categories/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

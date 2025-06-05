@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../lib/api';
 import { useCart } from '../context/CartContext';
+import jwtDecode from 'jwt-decode';
+import { toast } from 'react-toastify';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -43,10 +45,15 @@ function Login() {
       localStorage.setItem('token', token);
       setToken(token);
       console.log('Stored token:', token.slice(0, 10) + '...');
-      navigate('/');
+
+      const decoded = jwtDecode(token);
+      const redirectPath = decoded.role === 'admin' ? '/admin' : '/';
+      toast.success('Logged in successfully');
+      navigate(redirectPath);
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message || 'Failed to login. Please check your credentials.');
+      toast.error(error.message || 'Failed to login');
     } finally {
       setLoading(false);
     }
